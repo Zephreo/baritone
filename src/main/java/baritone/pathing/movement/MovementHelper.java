@@ -35,6 +35,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.IBlockAccess;
 
 import java.util.Optional;
@@ -441,6 +442,22 @@ public interface MovementHelper extends ActionCosts, Helper {
         state.setTarget(new MovementTarget(
                 new Rotation(RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
                         VecUtils.getBlockPosCenter(pos),
+                        ctx.playerRotations()).getYaw(), ctx.player().rotationPitch),
+                false
+        )).setInput(Input.MOVE_FORWARD, true);
+    }
+
+    /**
+     * Moves towards a double vector's coordinates.
+     *
+     * @param ctx       Player context
+     * @param state     Movement State
+     * @param pos       Position to move to
+     */
+    static void moveTowards(IPlayerContext ctx, MovementState state, Vec3d pos) {
+        state.setTarget(new MovementTarget(
+                new Rotation(RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
+                        pos,
                         ctx.playerRotations()).getYaw(), ctx.player().rotationPitch),
                 false
         )).setInput(Input.MOVE_FORWARD, true);

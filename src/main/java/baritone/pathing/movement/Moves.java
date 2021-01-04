@@ -22,6 +22,9 @@ import baritone.pathing.movement.movements.*;
 import baritone.utils.pathing.MutableMoveResult;
 import net.minecraft.util.EnumFacing;
 
+import java.util.Collection;
+import java.util.Collections;
+
 /**
  * An enum of all possible movements attached to all possible directions they could be taken in
  *
@@ -322,6 +325,94 @@ public enum Moves {
         public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
             MovementParkour.cost(context, x, y, z, EnumFacing.WEST, result);
         }
+    },
+
+    PARKOUR_ADV_NORTH(0, 0, -5, true, true) {
+        @Override
+        public Movement apply0(CalculationContext context, BetterBlockPos src) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canHaveMultipleDestinations() {
+            return true;
+        }
+
+        @Override
+        public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
+            return MovementParkourAdv.cost(context, src, EnumFacing.NORTH);
+        }
+
+        @Override
+        public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
+            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.NORTH);
+        }
+    },
+
+    PARKOUR_ADV_SOUTH(0, 0, +5, true, true) {
+        @Override
+        public Movement apply0(CalculationContext context, BetterBlockPos src) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canHaveMultipleDestinations() {
+            return true;
+        }
+
+        @Override
+        public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
+            return MovementParkourAdv.cost(context, src, EnumFacing.SOUTH);
+        }
+
+        @Override
+        public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
+            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.SOUTH);
+        }
+    },
+
+    PARKOUR_ADV_EAST(+5, 0, 0, true, true) {
+        @Override
+        public Movement apply0(CalculationContext context, BetterBlockPos src) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canHaveMultipleDestinations() {
+            return true;
+        }
+
+        @Override
+        public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
+            return MovementParkourAdv.cost(context, src, EnumFacing.EAST);
+        }
+
+        @Override
+        public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
+            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.EAST);
+        }
+    },
+
+    PARKOUR_ADV_WEST(-5, 0, 0, true, true) {
+        @Override
+        public Movement apply0(CalculationContext context, BetterBlockPos src) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canHaveMultipleDestinations() {
+            return true;
+        }
+
+        @Override
+        public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
+            return MovementParkourAdv.cost(context, src, EnumFacing.WEST);
+        }
+
+        @Override
+        public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
+            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.WEST);
+        }
     };
 
     public final boolean dynamicXZ;
@@ -356,6 +447,14 @@ public enum Moves {
     }
 
     public double cost(CalculationContext context, int x, int y, int z) {
+        throw new UnsupportedOperationException();
+    }
+
+    public boolean canHaveMultipleDestinations() {
+        return false;
+    }
+
+    public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
         throw new UnsupportedOperationException();
     }
 }

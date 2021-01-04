@@ -258,6 +258,20 @@ public final class Settings {
     public final Setting<Boolean> allowParkourPlace = new Setting<>(false);
 
     /**
+     * Allows baritone to consider parkour jumps at more angles.
+     * <p>
+     * Only takes effect if allowParkour is also enabled.
+     */
+    public final Setting<Boolean> allowParkourAdv = new Setting<>(false);
+
+    /**
+     * Allows baritone to consider 4 block jumps and neo jumps. Unreliable.
+     * <p>
+     * Only takes effect if allowParkour and allowParkourAdv is also enabled.
+     */
+    public final Setting<Boolean> allowParkourMomentumOrNeo = new Setting<>(false);
+
+    /**
      * For example, if you have Mining Fatigue or Haste, adjust the costs of breaking blocks accordingly.
      */
     public final Setting<Boolean> considerPotionEffects = new Setting<>(true);
