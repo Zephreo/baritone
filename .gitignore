@@ -11,6 +11,12 @@ build/
 classes/
 *.class
 
+# Eclipse Files
+.classpath
+.project
+.settings/
+baritone_Client.launch
+
 # IntelliJ Files
 .idea/
 *.iml
