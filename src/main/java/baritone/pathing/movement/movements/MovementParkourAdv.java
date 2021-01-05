@@ -75,6 +75,7 @@ public class MovementParkourAdv extends Movement {
     private static final double MOMENTUM_JUMP_DISTANCE = (MAX_JUMP_MOMENTUM - 1.6) / 12;
 
     private static final boolean TEST_LOG = true;
+    private static final JumpType TEST_TYPE = JumpType.NORMAL_CRAMPED;
     private static final DecimalFormat df = new DecimalFormat("#.##");
 
     enum JumpType {
@@ -398,7 +399,7 @@ public class MovementParkourAdv extends Movement {
             for (int j = (int) prevHeight; j <= Math.ceil(PLAYER_HEIGHT + prevHeight); j++) { // Checks feet, head, for each block. (can double check some blocks on ascends/descends)
                 // jumpDirection is subtracted at the beginning (re-added here)
                 if (!MovementHelper.fullyPassable(context, vec.getX() + srcX + jumpDirection.getXOffset(), vec.getY() + srcY + j, vec.getZ() + srcZ + jumpDirection.getZOffset())) {
-                    if (TEST_LOG && type == JumpType.EDGE_NEO) {
+                    if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
                         System.out.println("Blocks in the way, block = " + VecUtils.add(vec, srcX + jumpDirection.getXOffset(), srcY + j, srcZ + jumpDirection.getZOffset()) + " jump = " + new Vec3d(srcX, srcY, srcZ) + " -> " + new Vec3d(srcX + jump.getX(), srcY + jump.getY() + extraAscend, srcZ + jump.getZ()) + ", entryDir = " + entryDir + ", endPoint = " + endPoint + ", line = " + jumpLine);
                     }
                     return true;
@@ -448,7 +449,7 @@ public class MovementParkourAdv extends Movement {
         if (moveDis <= maxJump &&
                 !checkBlocksInWay(context, src.x, src.y, src.z, jump, 0, jumpDirection, initType, moveDis > type.maxJumpNoSprint)) { // no blocks in way
             cost = costFromJump(context, src.x, src.y, src.z, jump.getX(), jump.getY(), jump.getZ(), extraAscend, jumpDirection, type);
-        } else if (TEST_LOG) {
+        } else if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
             logDebug(moveDis + " <= " + maxJump);
         }
 
@@ -534,7 +535,7 @@ public class MovementParkourAdv extends Movement {
         }
 
         MutableMoveResult root = res;
-        firstResult = true;
+        boolean firstResult = true;
 
         for (Vec3i posbJump : ALL_VALID_DIR.get(jumpDirection).keySet()) {
             JumpType type = ALL_VALID_DIR.get(jumpDirection).get(posbJump);
@@ -573,7 +574,7 @@ public class MovementParkourAdv extends Movement {
                     if (checkBlocksInWay(context, srcX, srcY, srcZ, posbJump, 1, jumpDirection, type, moveDis > type.maxJumpNoSprint)) {
                         continue; // Blocks are in the way
                     }
-                    addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, 0, res);
+                    firstResult = addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, 0, res, firstResult);
                 }
                 continue;
             }
@@ -591,7 +592,7 @@ public class MovementParkourAdv extends Movement {
                     if (checkBlocksInWay(context, srcX, srcY, srcZ, posbJump, -descendAmount, jumpDirection, type, (moveDis + descendAmount * DESCEND_DIST_PER_BLOCK) > type.maxJumpNoSprint)) {
                         continue; // Blocks are in the way
                     }
-                    addMoveResult(context, srcX, srcY, srcZ, destX, destY - descendAmount, destZ, extraAscend - descendAmount, posbJump, jumpDirection, type, 0, res);
+                    firstResult = addMoveResult(context, srcX, srcY, srcZ, destX, destY - descendAmount, destZ, extraAscend - descendAmount, posbJump, jumpDirection, type, 0, res, firstResult);
                 }
             }
 
@@ -629,17 +630,15 @@ public class MovementParkourAdv extends Movement {
                             }
                             blocksCheckedYet = true;
                         }
-                        addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, placeCost, res);
+                        firstResult = addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, placeCost, res, firstResult);
                     }
                 }
             }
         }
         res = root;
     }
-    
-    private static boolean firstResult;
 
-    private static void addMoveResult(CalculationContext context, int srcX, int srcY, int srcZ, int destX, int destY, int destZ, double extraAscend, Vec3i jump, EnumFacing jumpDirection, JumpType type, double costModifiers, MutableMoveResult res) {
+    private static boolean addMoveResult(CalculationContext context, int srcX, int srcY, int srcZ, int destX, int destY, int destZ, double extraAscend, Vec3i jump, EnumFacing jumpDirection, JumpType type, double costModifiers, MutableMoveResult res, boolean firstResult) {
     	
     	// jump overlaps with another possible jump
     	if (type == JumpType.EDGE &&
@@ -647,7 +646,7 @@ public class MovementParkourAdv extends Movement {
     		EnumFacing destDirection = getDestDirection(jumpDirection, jump.getX(), jump.getZ());
     		double moveDist = calcMoveDist(context, srcX, srcY, srcZ, jump.getX(), destY - srcY, jump.getZ(), extraAscend, destDirection);
     		if (!checkBlocksInWay(context, srcX, srcY, srcZ, jump, destY - srcY, destDirection, JumpType.NORMAL, moveDist > JumpType.NORMAL.maxJumpNoSprint)) {
-    			return;
+    			return firstResult;
     		}
     	}
     	
@@ -662,11 +661,12 @@ public class MovementParkourAdv extends Movement {
             res.y = destY;
             res.z = destZ;
             res.cost = cost;
-            if (TEST_LOG && type == JumpType.EDGE_NEO && res.cost < COST_INF) {
+            if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
                 Vec3i jumpVec = new Vec3i(res.x - srcX, res.y - srcY, res.z - srcZ);
                 System.out.println(new Vec3i(srcX, srcY, srcZ) + " -> " + new Vec3i(res.x, res.y, res.z) + ", Dir = " + jumpDirection + ", Cost: " + res.cost + ", Distance: " + getDistance(jumpVec, jumpDirection) + ", MoveDis: " + calcMoveDist(context, srcX, srcY, srcZ, jumpVec.getX(), jumpVec.getY(), jumpVec.getZ(), extraAscend, jumpDirection));
             }
         }
+        return firstResult;
     }
 
     // used to determine if we should sprint or not
@@ -748,14 +748,14 @@ public class MovementParkourAdv extends Movement {
                         MovementHelper.fullyPassable(context, srcX - jumpDirection.getXOffset(), srcY + 1, srcZ - jumpDirection.getZOffset())) {
                     type = JumpType.MOMENTUM_NO_BLOCK;
                     if (jumpX != 0 && jumpZ != 0 && jumpY >= 0 && !Baritone.settings().allowParkourCheat.value) {
-                        if (TEST_LOG) {
+                        if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
                             System.out.println("Discarding angled MOMENTUM_NO_BLOCK.");
                         }
                         return COST_INF; // unsafe
                     }
                     if (MovementHelper.canWalkOn(context.bsi, srcX - jumpDirection.getXOffset(), srcY - 1, srcZ - jumpDirection.getZOffset()) && !Baritone.settings().allowParkourCheat.value) {
                         // type = JumpType.MOMENTUM_2BM?
-                        if (TEST_LOG) {
+                        if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
                             System.out.println("Discarding 2bm MOMENTUM_NO_BLOCK. (Not yet implemented/Overlaps with other jump)");
                         }
                         return COST_INF; // unsafe
@@ -768,7 +768,7 @@ public class MovementParkourAdv extends Movement {
                 jumpX = Integer.compare(jumpX, 0);
                 jumpZ = Integer.compare(jumpZ, 0);
                 if (MovementHelper.fullyPassable(context, srcX + jumpX, srcY + 1, srcZ + jumpZ)) {
-                    if (TEST_LOG) {
+                    if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
                         System.out.println("Discarding EDGE_NEO. src = " + new Vec3i(srcX, srcY, srcZ) + ", dir = " + jumpDirection + ", since " + new Vec3i(srcX + jumpX, srcY + 1, srcZ + jumpZ) + " is not a block");
                     }
                     return COST_INF; // don't neo if you can just do a normal jump
