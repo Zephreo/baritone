@@ -270,6 +270,15 @@ public final class Settings {
      * Only takes effect if allowParkour and allowParkourAdv is also enabled.
      */
     public final Setting<Boolean> allowParkourMomentumOrNeo = new Setting<>(false);
+    
+    /**
+     * Allows baritone to perfectly adjust its movement to make parkour 100% accurate. 
+     * <br>
+     * Only a single movement is adjusted at the end of the prepare phase guaranteed to move the player unnaturally less than 0.1 blocks.
+     * <p>
+     * Only takes effect if allowParkour and allowParkourAdv is also enabled.
+     */
+    public final Setting<Boolean> allowParkourCheat = new Setting<>(false); // *for testing purposes
 
     /**
      * For example, if you have Mining Fatigue or Haste, adjust the costs of breaking blocks accordingly.
