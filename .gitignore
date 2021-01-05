@@ -4,6 +4,7 @@
 run/
 autotest/
 dist/
+/bin/
 
 # Gradle
 build/
@@ -27,4 +28,3 @@ baritone_Client.launch
 # Copyright Files
 !/.idea/copyright/Baritone.xml
 !/.idea/copyright/profiles_settings.xml
-/bin/
