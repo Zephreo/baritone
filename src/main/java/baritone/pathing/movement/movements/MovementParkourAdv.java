@@ -72,7 +72,7 @@ public class MovementParkourAdv extends Movement {
 
     // Not 100% accurate
     private static final double MOMENTUM_JUMP_DISTANCE = (MAX_JUMP_MOMENTUM - 1.6) / 12;
-
+    
     private static final DecimalFormat df = new DecimalFormat("#.##");
 
     enum JumpType {
@@ -516,7 +516,7 @@ public class MovementParkourAdv extends Movement {
         }
 
         MutableMoveResult root = res;
-        firstResult = true;
+        boolean firstResult = true;
 
         for (Vec3i posbJump : ALL_VALID_DIR.get(jumpDirection).keySet()) {
             JumpType type = ALL_VALID_DIR.get(jumpDirection).get(posbJump);
@@ -555,7 +555,7 @@ public class MovementParkourAdv extends Movement {
                     if (checkBlocksInWay(context, srcX, srcY, srcZ, posbJump, 1, jumpDirection, type, moveDis > type.maxJumpNoSprint)) {
                         continue; // Blocks are in the way
                     }
-                    addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, 0, res);
+                    firstResult = addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, 0, res, firstResult);
                 }
                 continue;
             }
@@ -573,7 +573,7 @@ public class MovementParkourAdv extends Movement {
                     if (checkBlocksInWay(context, srcX, srcY, srcZ, posbJump, -descendAmount, jumpDirection, type, (moveDis + descendAmount * DESCEND_DIST_PER_BLOCK) > type.maxJumpNoSprint)) {
                         continue; // Blocks are in the way
                     }
-                    addMoveResult(context, srcX, srcY, srcZ, destX, destY - descendAmount, destZ, extraAscend - descendAmount, posbJump, jumpDirection, type, 0, res);
+                    firstResult = addMoveResult(context, srcX, srcY, srcZ, destX, destY - descendAmount, destZ, extraAscend - descendAmount, posbJump, jumpDirection, type, 0, res, firstResult);
                 }
             }
 
@@ -610,17 +610,15 @@ public class MovementParkourAdv extends Movement {
                             }
                             blocksCheckedYet = true;
                         }
-                        addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, placeCost, res);
+                        firstResult = addMoveResult(context, srcX, srcY, srcZ, destX, destY, destZ, extraAscend, posbJump, jumpDirection, type, placeCost, res, firstResult);
                     }
                 }
             }
         }
         res = root;
     }
-    
-    private static boolean firstResult;
 
-    private static void addMoveResult(CalculationContext context, int srcX, int srcY, int srcZ, int destX, int destY, int destZ, double extraAscend, Vec3i jump, EnumFacing jumpDirection, JumpType type, double costModifiers, MutableMoveResult res) {
+    private static boolean addMoveResult(CalculationContext context, int srcX, int srcY, int srcZ, int destX, int destY, int destZ, double extraAscend, Vec3i jump, EnumFacing jumpDirection, JumpType type, double costModifiers, MutableMoveResult res, boolean firstResult) {
     	
     	// jump overlaps with another possible jump
     	if (type == JumpType.EDGE &&
@@ -628,7 +626,7 @@ public class MovementParkourAdv extends Movement {
     		EnumFacing destDirection = getDestDirection(jumpDirection, jump.getX(), jump.getZ());
     		double moveDist = calcMoveDist(context, srcX, srcY, srcZ, jump.getX(), destY - srcY, jump.getZ(), extraAscend, destDirection);
     		if (!checkBlocksInWay(context, srcX, srcY, srcZ, jump, destY - srcY, destDirection, JumpType.NORMAL, moveDist > JumpType.NORMAL.maxJumpNoSprint)) {
-    			return;
+    			return firstResult;
     		}
     	}
     	
@@ -644,6 +642,7 @@ public class MovementParkourAdv extends Movement {
             res.z = destZ;
             res.cost = cost;
         }
+        return firstResult;
     }
 
     // used to determine if we should sprint or not
@@ -1252,15 +1251,15 @@ public class MovementParkourAdv extends Movement {
                     if (Math.abs(jumpAngle) < 40) { // 33 degree jump
                         state.setTarget(new MovementState.MovementTarget(
                                 new Rotation((float) getSignedAngle(EnumFacing.SOUTH.getXOffset(), EnumFacing.SOUTH.getZOffset(), dest.x - src.x - jumpDirection.getXOffset() * 0.6, dest.z - src.z - jumpDirection.getZOffset() * 0.6),
-                                        ctx.playerRotations().getPitch()), true));
+                                        ctx.playerRotations().getPitch()), false));
                     } else if (Math.abs(jumpAngle) < 50) { // 45 degree jump
                         state.setTarget(new MovementState.MovementTarget(
                                 new Rotation(destDirection.getHorizontalAngle() - Float.compare(jumpAngle, 0) * 10,
-                                        ctx.playerRotations().getPitch()), true));
+                                        ctx.playerRotations().getPitch()), false));
                     } else if (Math.abs(jumpAngle) < 60) { // 56 degree jump
                         state.setTarget(new MovementState.MovementTarget(
                                 new Rotation(destDirection.getHorizontalAngle() - Float.compare(jumpAngle, 0) * 10,
-                                        ctx.playerRotations().getPitch()), true));
+                                        ctx.playerRotations().getPitch()), false));
                     }
                     state.setInput(Input.SPRINT, true);
                     break;
@@ -1341,15 +1340,15 @@ public class MovementParkourAdv extends Movement {
                             }
                             state.setTarget(new MovementState.MovementTarget(
                                     new Rotation(destDirection.getHorizontalAngle() - Float.compare(jumpAngle, 0) * angle,
-                                            ctx.playerRotations().getPitch()), true));
+                                            ctx.playerRotations().getPitch()), false));
                         } else if (Math.abs(jumpAngle) < 60) { // 56 degree jump
                             state.setTarget(new MovementState.MovementTarget(
                                     new Rotation(destDirection.getHorizontalAngle() - Float.compare(jumpAngle, 0) * 20,
-                                            ctx.playerRotations().getPitch()), true));
+                                            ctx.playerRotations().getPitch()), false));
                             if (ticksRemaining < 8) {
                                 state.setTarget(new MovementState.MovementTarget(
                                         new Rotation(destDirection.getHorizontalAngle() - Float.compare(jumpAngle, 0) * 45,
-                                                ctx.playerRotations().getPitch()), true));
+                                                ctx.playerRotations().getPitch()), false));
                             }
                         }
                         break;
