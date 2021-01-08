@@ -61,7 +61,7 @@ public class MovementParkourAdv extends Movement {
 
     private static final double MAX_JUMP_MOMENTUM = 5.3; // We can't make 1bm momentum jumps greater than this distance
     private static final double MAX_JUMP_SPRINT = 4.6; // We can't make flat sprint jumps greater than this distance
-    private static final double MAX_JUMP_WALK = 3.48; // We can make the jump without sprinting below this distance
+    private static final double MAX_JUMP_WALK = 3.35; // We can make the jump without sprinting below this distance
 
     private static final double LAND_COST = 3; // time taken to land and cancel momentum
     private static final double JUMP_IN_WATER_COST = 5;
@@ -74,7 +74,7 @@ public class MovementParkourAdv extends Movement {
     // Not 100% accurate
     private static final double MOMENTUM_JUMP_DISTANCE = (MAX_JUMP_MOMENTUM - 1.6) / 12;
 
-    private static final boolean TEST_LOG = true;
+    private static final boolean TEST_LOG = false;
     private static final JumpType TEST_TYPE = JumpType.NORMAL_CRAMPED;
     private static final DecimalFormat df = new DecimalFormat("#.##");
 
@@ -857,7 +857,7 @@ public class MovementParkourAdv extends Movement {
         		ctx.player().move(MoverType.SELF, ctx.player().posX - preJumpPos.x, 0, ctx.player().posZ - preJumpPos.z); // cheating for 100% accuracy
         		distance = 0;
         	}
-            logDebug("Achieved '" + df.format(distance) + "' blocks of accuracy to preploc. Time = " + ticksSinceJump + ", Jump Direction = " + jumpDirection + ", Entry Direction = " + entryDirection + ", Remaining Motion = " + df.format(new Vec3d(ctx.player().motionX, ctx.player().motionY, ctx.player().motionZ).length()) + ", Using technique '" + type + "'");
+            logDebug("Achieved '" + df.format(distance) + "' blocks of accuracy to preploc. Time = " + ticksSinceJump + ", Jump Direction = " + jumpDirection + ", Entry Direction = " + entryDirection + ", Distance = " + df.format(moveDist) + ", Using technique '" + type + "'");
             inStartingPosition = true;
             ticksAtDest = 0;
             ticksSinceJump = -1;
