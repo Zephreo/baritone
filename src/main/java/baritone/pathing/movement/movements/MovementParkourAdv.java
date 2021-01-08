@@ -177,7 +177,7 @@ public class MovementParkourAdv extends Movement {
         this.jumpAngle = (float) (getSignedAngle(jumpDirection.getXOffset(), jumpDirection.getZOffset(), jump.getX(), jump.getZ()));
         this.destDirection = getDestDirection(jumpDirection, jumpAngle);
         this.entryDirection = getValidEntryPoint(context, src.x, src.y, src.z, jump.getX(), jump.getY(), jump.getZ(), jumpDirection, destDirection, type);
-        this.entryPoint = new Vec3d(entryDirection.getOpposite().getDirectionVec()).scale(0.5).add(dest.x + 0.5, dest.y + ascendAmount, dest.z + 0.5);
+        this.entryPoint = new Vec3d(entryDirection.getOpposite().getDirectionVec()).scale(0.8).add(dest.x + 0.5, dest.y + ascendAmount, dest.z + 0.5);
     }
     
     private static EnumFacing getDestDirection(EnumFacing jumpDirection, int jumpX, int jumpZ) {
@@ -1210,6 +1210,7 @@ public class MovementParkourAdv extends Movement {
         if (state.getStatus() != MovementStatus.RUNNING) {
             return state;
         }
+        // logDebug("pos = " + ctx.playerFeetAsVec() + " ticks " + (jumpTime - ticksSinceJump - 1));
 
         if (ticksSinceJump > 40) { // Should generally have <= 12 (exceptions are descending jumps)
             logDebug("jump timed out");
@@ -1371,7 +1372,7 @@ public class MovementParkourAdv extends Movement {
                 case NORMAL_CRAMPED:
                     if (ticksRemaining >= 3) {
                         // first half of jump
-                    	MovementHelper.moveTowards(ctx, state, entryPoint.subtract(entryDirection.getXOffset() * 0.25, 0, entryDirection.getZOffset() * 0.25));
+                    	MovementHelper.moveTowards(ctx, state, entryPoint.add(entryDirection.getXOffset() * 0.05, 0, entryDirection.getZOffset() * 0.05));
                     } else {
                         // second half of jump
                     	if (ticksRemaining > 0) {
@@ -1469,8 +1470,8 @@ public class MovementParkourAdv extends Movement {
             if (future5.collidedHorizontally && future5.posY > dest.getY() - 0.3 && future5.posY < dest.getY() + 0.5 && type != JumpType.NORMAL_CRAMPED) {
                 double angleDiff = getSignedAngle(destVec.subtract(future5.getPosition()), ctx.player().getLookVec());
                 if(Math.abs(angleDiff) > 25) {
-                    logDebug("Adjusting movement to dodge an obstacle. Predicted collision location = " + future5.getPosition() + ", tick = " + ticksSinceJump + " -> " + (ticksSinceJump + Math.min(4, ticksRemaining)));
-                    state.setInput(sideMove(angleDiff), true);
+                    // logDebug("Adjusting movement to dodge an obstacle. Predicted collision location = " + future5.getPosition() + ", angleDiff = " + angleDiff + ", tick = " + ticksSinceJump + " -> " + (ticksSinceJump + Math.min(4, ticksRemaining)));
+                    // state.setInput(sideMove(angleDiff), true);
                 }
             }
 
