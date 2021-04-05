@@ -20,13 +20,13 @@ package baritone.command.defaults;
 import baritone.Baritone;
 import baritone.api.IBaritone;
 import baritone.api.Settings;
-import baritone.api.utils.SettingsUtil;
 import baritone.api.command.Command;
+import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.exception.CommandException;
 import baritone.api.command.exception.CommandInvalidTypeException;
-import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.helpers.Paginator;
 import baritone.api.command.helpers.TabCompleteHelper;
+import baritone.api.utils.SettingsUtil;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
@@ -39,9 +39,8 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static baritone.api.utils.SettingsUtil.settingTypeToString;
-import static baritone.api.utils.SettingsUtil.settingValueToString;
 import static baritone.api.command.IBaritoneChatControl.FORCE_COMMAND_PREFIX;
+import static baritone.api.utils.SettingsUtil.*;
 
 public class SetCommand extends Command {
 
@@ -88,6 +87,7 @@ public class SetCommand extends Command {
                         hoverComponent.appendText(setting.getName());
                         hoverComponent.appendText(String.format("\nType: %s", settingTypeToString(setting)));
                         hoverComponent.appendText(String.format("\n\nValue:\n%s", settingValueToString(setting)));
+                        hoverComponent.appendText(String.format("\n\nDefault Value:\n%s", settingDefaultToString(setting)));
                         String commandSuggestion = Baritone.settings().prefix.value + String.format("set %s ", setting.getName());
                         ITextComponent component = new TextComponentString(setting.getName());
                         component.getStyle().setColor(TextFormatting.GRAY);

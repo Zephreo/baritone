@@ -207,6 +207,29 @@ public final class Settings {
     )));
 
     /**
+     * A list of blocks to be treated as correct.
+     * <p>
+     * If a schematic asks for any block on this list at a certain position, it will be treated as correct, regardless of what it currently is.
+     */
+    public final Setting<List<Block>> buildSkipBlocks = new Setting<>(new ArrayList<>(Arrays.asList(
+
+    )));
+
+    /**
+     * A mapping of blocks to blocks treated as correct in their position
+     * <p>
+     * If a schematic asks for a block on this mapping, all blocks on the mapped list will be accepted at that location as well
+     */
+    public final Setting<Map<Block, List<Block>>> buildValidSubstitutes = new Setting<>(new HashMap<>());
+
+    /**
+     * A mapping of blocks to blocks to be built instead
+     * <p>
+     * If a schematic asks for a block on this mapping, Baritone will place the first placeable block in the mapped list
+     */
+    public final Setting<Map<Block, List<Block>>> buildSubstitutes = new Setting<>(new HashMap<>());
+
+    /**
      * A list of blocks to become air
      * <p>
      * If a schematic asks for a block on this list, only air will be accepted at that location (and nothing on buildIgnoreBlocks)
@@ -664,7 +687,7 @@ public final class Settings {
 
     /**
      * When GetToBlockProcess or MineProcess fails to calculate a path, instead of just giving up, mark the closest instance
-     * of that block as "unreachable" and go towards the next closest. GetToBlock expands this seaarch to the whole "vein"; MineProcess does not.
+     * of that block as "unreachable" and go towards the next closest. GetToBlock expands this search to the whole "vein"; MineProcess does not.
      * This is because MineProcess finds individual impossible blocks (like one block in a vein that has gravel on top then lava, so it can't break)
      * Whereas GetToBlock should blacklist the whole "vein" if it can't get to any of them.
      */
@@ -718,6 +741,11 @@ public final class Settings {
      * Censor arguments to ran commands, to hide, for example, coordinates to #goal
      */
     public final Setting<Boolean> censorRanCommands = new Setting<>(false);
+
+    /**
+     * Stop using tools just before they are going to break.
+     */
+    public final Setting<Boolean> itemSaver = new Setting<>(false);
 
     /**
      * Always prefer silk touch tools over regular tools. This will not sacrifice speed, but it will always prefer silk
@@ -851,6 +879,13 @@ public final class Settings {
      * How many times to buildrepeat. -1 for infinite.
      */
     public final Setting<Integer> buildRepeatCount = new Setting<>(-1);
+
+    /**
+     * Don't notify schematics that they are moved.
+     * e.g. replacing will replace the same spots for every repetition
+     * Mainly for backward compatibility.
+     */
+    public final Setting<Boolean> buildRepeatSneaky = new Setting<>(true);
 
     /**
      * Allow standing above a block while mining it, in BuilderProcess
@@ -1135,6 +1170,11 @@ public final class Settings {
      * Render selection corners
      */
     public final Setting<Boolean> renderSelectionCorners = new Setting<>(true);
+
+    /**
+     * Use sword to mine.
+     */
+    public final Setting<Boolean> useSwordToMine = new Setting<>(true);
 
     /**
      * Desktop notifications
