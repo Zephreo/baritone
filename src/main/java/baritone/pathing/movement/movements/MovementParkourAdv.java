@@ -440,7 +440,7 @@ public class MovementParkourAdv extends Movement {
                     prevHeight = calcFallPosition(tick, true, jumpBoost); // slower
                     prevTick = tick;
                 }
-                for (int j = (int) prevHeight; j <= Math.ceil(PLAYER_HEIGHT + prevHeight); j++) { // Checks feet, head, for each block. (can double check some blocks on ascends/descends)
+                for (int j = Math.max(0, (int) (prevHeight - 0.3)); j <= Math.floor(PLAYER_HEIGHT + prevHeight); j++) { // Checks feet, head, for each block. (can double check some blocks on ascends/descends)
                     // jumpDirection is subtracted at the beginning (re-added here)
                     if (!MovementHelper.fullyPassable(context, vec.getX() + srcX + jumpDirection.getXOffset(), vec.getY() + srcY + j, vec.getZ() + srcZ + jumpDirection.getZOffset())) {
                         if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
