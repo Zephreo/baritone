@@ -80,7 +80,7 @@ public class MovementParkourAdv extends Movement {
 
     enum JumpType {
         NORMAL(MAX_JUMP_WALK, MAX_JUMP_SPRINT, 4), // Normal run and jump
-        NORMAL_CRAMPED(MAX_JUMP_WALK, MAX_JUMP_SPRINT, 8), // normal jumps with low room for adjustments or side movements
+        NORMAL_2_1(MAX_JUMP_WALK, MAX_JUMP_SPRINT, 8), // normal jumps with low room for adjustments or side movements
         NORMAL_STRAIGHT_DESCEND(MAX_JUMP_WALK, MAX_JUMP_SPRINT, 4), // A type that will use the normal jump on descends only (Since MovementParkour doesn't do descends)
 
         EDGE(3, MAX_JUMP_SPRINT, 7), // No run up (for higher angle jumps)
@@ -108,7 +108,7 @@ public class MovementParkourAdv extends Movement {
         final HashMap<Vec3i, JumpType> east = new HashMap<>();
         // The jumps that are valid (forward amount (including the destination), horizontal amount, the technique to use (defaults to NORMAL))
         int[][] validQuadrant = {{2, 0, JumpType.NORMAL_STRAIGHT_DESCEND.ordinal()}, {3, 0, JumpType.NORMAL_STRAIGHT_DESCEND.ordinal()}, {4, 0, JumpType.NORMAL_STRAIGHT_DESCEND.ordinal()}, {5, 0, JumpType.MOMENTUM.ordinal()},
-                {1, 1}, {2, 1, JumpType.NORMAL_CRAMPED.ordinal()}, {3, 1}, {4, 1}, {5, 1, JumpType.MOMENTUM.ordinal()},
+                {1, 1}, {2, 1, JumpType.NORMAL_2_1.ordinal()}, {3, 1}, {4, 1}, {5, 1, JumpType.MOMENTUM.ordinal()},
                 {0, 2, JumpType.EDGE_NEO.ordinal()}, {1, 2, JumpType.EDGE.ordinal()}, {2, 2, JumpType.EDGE.ordinal()}, {3, 2, JumpType.EDGE.ordinal()}, {4, 2, JumpType.MOMENTUM.ordinal()},
                 {1, 3, JumpType.EDGE.ordinal()}, {2, 3, JumpType.EDGE.ordinal()}};
         for (int[] jump : validQuadrant) {
@@ -286,6 +286,23 @@ public class MovementParkourAdv extends Movement {
         }
         return new Vec3i(x, input.getY(), z);
     }
+    
+    private static Set<Vec3i> getLineApprox(Vec3d vec, double overlap, double accPerBlock) {
+        return approxBlocks(getLine(vec, accPerBlock), overlap);
+    }
+
+    public static List<Vec3d> getLine(Vec3d vector, double accPerBlock) {
+        ArrayList<Vec3d> line = new ArrayList<>();
+        double length = vector.length();
+        double x = vector.x / length;
+        double y = vector.y / length;
+        double z = vector.z / length;
+        accPerBlock = 1 / accPerBlock;
+        for (double i = 0; i < length; i += accPerBlock) {
+            line.add(new Vec3d(x * i + 0.5, y * i + 0.5, z * i + 0.5));
+        }
+        return line;
+    }
 
     private static Set<Vec3i> getLineApprox(Vec3i vec, double overlap, double accPerBlock) {
         return approxBlocks(getLine(vec, accPerBlock), overlap);
@@ -386,7 +403,14 @@ public class MovementParkourAdv extends Movement {
             	continue; // The initial location is blocked (in the directions we can jump in)
             }
             // System.out.println("jump = " + jump + " entry = " + entryDir.getDirectionVec() + " jumpDir = " + jumpDirection.getDirectionVec());
-            Vec3i endPoint = new Vec3i(jumpX - entryDir.getXOffset() - jumpDirection.getXOffset(), jumpY, jumpZ - entryDir.getZOffset() - jumpDirection.getZOffset());
+        	double simpleDifficulty = Math.abs(jumpX) + Math.abs(jumpZ) + (jumpY > 0 ? jumpY * 5 : 0);
+        	double entryMod = 1;
+        	if (simpleDifficulty > 8)
+        	{
+        		// System.out.println(simpleDifficulty + "jump" + new Vec3i(jumpX, jumpY, jumpZ));
+        		entryMod = 0.5;
+        	}
+            Vec3d endPoint = new Vec3d(jumpX - (entryDir.getXOffset() * entryMod) - jumpDirection.getXOffset(), jumpY, jumpZ - (entryDir.getZOffset() * entryMod) - jumpDirection.getZOffset());
             Set<Vec3i> jumpLine = getLineApprox(endPoint, 0.3, 2);
             // jumpLine.remove(new Vec3i(endPoint.getX(), endPoint.getY() - 1, endPoint.getZ()));
 
@@ -849,7 +873,7 @@ public class MovementParkourAdv extends Movement {
                 offset = new Vec3d(jumpDirection.getDirectionVec()).scale(0.1);
                 accuracy = 0.2;
                 break;
-            case NORMAL_CRAMPED:
+            case NORMAL_2_1:
             	accuracy = 0.05;
             	if (entryDirection == destDirection) {
             		offset = new Vec3d(jumpDirection.getOpposite().getDirectionVec()).scale(PREP_OFFSET).add(destDirection.getXOffset() * 0.2, 0, destDirection.getZOffset() * 0.2);
@@ -1317,7 +1341,7 @@ public class MovementParkourAdv extends Movement {
 
             switch (type) {
                 case NORMAL:
-                case NORMAL_CRAMPED:
+                case NORMAL_2_1:
                 case NORMAL_STRAIGHT_DESCEND:
                     MovementHelper.moveTowards(ctx, state, jumpLoc.scale(jumpExtension).add(src.x, src.y, src.z));
                     break;
@@ -1425,7 +1449,7 @@ public class MovementParkourAdv extends Movement {
         } else {
         	// The main jump phase. Orient the player towards the destination (and avoid the main obstacles)
             switch (type) {
-                case NORMAL_CRAMPED:
+                case NORMAL_2_1:
                     if (ticksRemaining >= 3) {
                         // first half of jump
                     	MovementHelper.moveTowards(ctx, state, entryPoint.subtract(entryDirection.getXOffset() * 0.25, 0, entryDirection.getZOffset() * 0.25));
@@ -1525,7 +1549,7 @@ public class MovementParkourAdv extends Movement {
             MovementPrediction.PredictionResult future5 = MovementPrediction.getFutureLocation(ctx.player(), state, Math.min(4, ticksRemaining)); // The predicted location a few ticks in the future
 
             // adjust movement to attempt to dodge obstacles
-            if (future5.collidedHorizontally && future5.posY > dest.getY() - 0.3 && future5.posY < dest.getY() + 0.5 && type != JumpType.NORMAL_CRAMPED) {
+            if (future5.collidedHorizontally && future5.posY > dest.getY() - 0.3 && future5.posY < dest.getY() + 0.5 && type != JumpType.NORMAL_2_1) {
                 double angleDiff = getSignedAngle(destVec.subtract(future5.getPosition()), ctx.player().getLookVec());
                 if(Math.abs(angleDiff) > 25) {
                     // logDebug("Adjusting movement to dodge an obstacle. Predicted collision location = " + future5.getPosition() + ", angleDiff = " + angleDiff + ", tick = " + ticksSinceJump + " -> " + (ticksSinceJump + Math.min(4, ticksRemaining)));
