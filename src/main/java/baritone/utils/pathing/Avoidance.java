@@ -21,10 +21,10 @@ import baritone.Baritone;
 import baritone.api.utils.BetterBlockPos;
 import baritone.api.utils.IPlayerContext;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
-import net.minecraft.entity.monster.EntityEnderman;
-import net.minecraft.entity.monster.EntityMob;
-import net.minecraft.entity.monster.EntityPigZombie;
-import net.minecraft.entity.monster.EntitySpider;
+import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.monster.EndermanEntity;
+import net.minecraft.entity.monster.SpiderEntity;
+import net.minecraft.entity.monster.ZombifiedPiglinEntity;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
@@ -72,12 +72,12 @@ public class Avoidance {
                     .forEach(mobspawner -> res.add(new Avoidance(mobspawner, mobSpawnerCoeff, Baritone.settings().mobSpawnerAvoidanceRadius.value)));
         }
         if (mobCoeff != 1.0D) {
-            ctx.world().loadedEntityList.stream()
-                    .filter(entity -> entity instanceof EntityMob)
-                    .filter(entity -> (!(entity instanceof EntitySpider)) || ctx.player().getBrightness() < 0.5)
-                    .filter(entity -> !(entity instanceof EntityPigZombie) || ((EntityPigZombie) entity).isAngry())
-                    .filter(entity -> !(entity instanceof EntityEnderman) || ((EntityEnderman) entity).isScreaming())
-                    .forEach(entity -> res.add(new Avoidance(new BlockPos(entity), mobCoeff, Baritone.settings().mobAvoidanceRadius.value)));
+            ctx.entitiesStream()
+                    .filter(entity -> entity instanceof MobEntity)
+                    .filter(entity -> (!(entity instanceof SpiderEntity)) || ctx.player().getBrightness() < 0.5)
+                    .filter(entity -> !(entity instanceof ZombifiedPiglinEntity) || ((ZombifiedPiglinEntity) entity).getRevengeTarget() != null)
+                    .filter(entity -> !(entity instanceof EndermanEntity) || ((EndermanEntity) entity).isScreaming())
+                    .forEach(entity -> res.add(new Avoidance(entity.getPosition(), mobCoeff, Baritone.settings().mobAvoidanceRadius.value)));
         }
         return res;
     }

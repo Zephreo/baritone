@@ -18,8 +18,9 @@
 package baritone.api.utils;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 
 /**
  * @author Brady
@@ -44,22 +45,22 @@ public final class RayTraceUtils {
     }
 
     public static RayTraceResult rayTraceTowards(Entity entity, Rotation rotation, double blockReachDistance, boolean wouldSneak) {
-        Vec3d start;
+        Vector3d start;
         if (wouldSneak) {
             start = inferSneakingEyePosition(entity);
         } else {
-            start = entity.getPositionEyes(1.0F); // do whatever is correct
+            start = entity.getEyePosition(1.0F); // do whatever is correct
         }
-        Vec3d direction = RotationUtils.calcVec3dFromRotation(rotation);
-        Vec3d end = start.add(
+        Vector3d direction = RotationUtils.calcVector3dFromRotation(rotation);
+        Vector3d end = start.add(
                 direction.x * blockReachDistance,
                 direction.y * blockReachDistance,
                 direction.z * blockReachDistance
         );
-        return entity.world.rayTraceBlocks(start, end, false, false, true);
+        return entity.world.rayTraceBlocks(new RayTraceContext(start, end, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, entity));
     }
 
-    public static Vec3d inferSneakingEyePosition(Entity entity) {
-        return new Vec3d(entity.posX, entity.posY + IPlayerContext.eyeHeight(true), entity.posZ);
+    public static Vector3d inferSneakingEyePosition(Entity entity) {
+        return new Vector3d(entity.getPosX(), entity.getPosY() + IPlayerContext.eyeHeight(true), entity.getPosZ());
     }
 }

@@ -15,27 +15,12 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package baritone.launch.mixins;
+package baritone.utils.accessor;
 
-import baritone.utils.accessor.IPlayerControllerMP;
-import net.minecraft.client.multiplayer.PlayerControllerMP;
-import net.minecraft.util.math.BlockPos;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.gen.Accessor;
-import org.spongepowered.asm.mixin.gen.Invoker;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
-@Mixin(PlayerControllerMP.class)
-public abstract class MixinPlayerControllerMP implements IPlayerControllerMP {
-
-    @Accessor
-    @Override
-    public abstract void setIsHittingBlock(boolean isHittingBlock);
-
-    @Accessor
-    @Override
-    public abstract BlockPos getCurrentBlock();
-
-    @Invoker
-    @Override
-    public abstract void callSyncCurrentPlayItem();
+public interface ISodiumChunkArray extends IChunkArray {
+    
+    ObjectIterator<Long2ObjectMap.Entry<Object>> callIterator();
 }

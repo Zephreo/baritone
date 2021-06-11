@@ -17,17 +17,25 @@
 
 package baritone.launch.mixins;
 
-import baritone.utils.accessor.IGuiScreen;
-import net.minecraft.client.gui.GuiScreen;
+import baritone.utils.accessor.IPlayerControllerMP;
+import net.minecraft.client.multiplayer.PlayerController;
+import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-import java.net.URI;
+@Mixin(PlayerController.class)
+public abstract class MixinPlayerController implements IPlayerControllerMP {
 
-@Mixin(GuiScreen.class)
-public abstract class MixinGuiScreen implements IGuiScreen {
-
+    @Accessor
     @Override
-    @Invoker("openWebLink")
-    public abstract void openLink(URI url);
+    public abstract void setIsHittingBlock(boolean isHittingBlock);
+
+    @Accessor
+    @Override
+    public abstract BlockPos getCurrentBlock();
+
+    @Invoker
+    @Override
+    public abstract void callSyncCurrentPlayItem();
 }

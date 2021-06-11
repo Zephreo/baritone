@@ -20,10 +20,10 @@ package baritone.api;
 import baritone.api.utils.SettingsUtil;
 import baritone.api.utils.TypeUtils;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.Minecraft;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.math.vector.Vector3i;
 import net.minecraft.util.text.ITextComponent;
 
 import java.awt.*;
@@ -171,10 +171,10 @@ public final class Settings {
      * Blocks that Baritone is allowed to place (as throwaway, for sneak bridging, pillaring, etc.)
      */
     public final Setting<List<Item>> acceptableThrowawayItems = new Setting<>(new ArrayList<>(Arrays.asList(
-            Item.getItemFromBlock(Blocks.DIRT),
-            Item.getItemFromBlock(Blocks.COBBLESTONE),
-            Item.getItemFromBlock(Blocks.NETHERRACK),
-            Item.getItemFromBlock(Blocks.STONE)
+            Blocks.DIRT.asItem(),
+            Blocks.COBBLESTONE.asItem(),
+            Blocks.NETHERRACK.asItem(),
+            Blocks.STONE.asItem()
     )));
 
     /**
@@ -190,11 +190,8 @@ public final class Settings {
     public final Setting<List<Block>> blocksToAvoidBreaking = new Setting<>(new ArrayList<>(Arrays.asList( // TODO can this be a HashSet or ImmutableSet?
             Blocks.CRAFTING_TABLE,
             Blocks.FURNACE,
-            Blocks.LIT_FURNACE,
             Blocks.CHEST,
-            Blocks.TRAPPED_CHEST,
-            Blocks.STANDING_SIGN,
-            Blocks.WALL_SIGN
+            Blocks.TRAPPED_CHEST
     )));
 
     /**
@@ -329,6 +326,11 @@ public final class Settings {
      * How many ticks between right clicks are allowed. Default in game is 4
      */
     public final Setting<Integer> rightClickSpeed = new Setting<>(4);
+
+    /**
+     * How many degrees to randomize the yaw every tick. Set to 0 to disable
+     */
+    public final Setting<Double> randomLooking113 = new Setting<>(2d);
 
     /**
      * Block reach distance
@@ -873,7 +875,7 @@ public final class Settings {
     /**
      * How far to move before repeating the build. 0 to disable repeating on a certain axis, 0,0,0 to disable entirely
      */
-    public final Setting<Vec3i> buildRepeat = new Setting<>(new Vec3i(0, 0, 0));
+    public final Setting<Vector3i> buildRepeat = new Setting<>(new Vector3i(0, 0, 0));
 
     /**
      * How many times to buildrepeat. -1 for infinite.
@@ -1079,7 +1081,12 @@ public final class Settings {
      * via {@link Consumer#andThen(Consumer)} or it can completely be overriden via setting
      * {@link Setting#value};
      */
-    public final Setting<Consumer<ITextComponent>> logger = new Setting<>(Minecraft.getMinecraft().ingameGUI.getChatGUI()::printChatMessage);
+    public final Setting<Consumer<ITextComponent>> logger = new Setting<>(Minecraft.getInstance().ingameGUI.getChatGUI()::printChatMessage);
+
+    /**
+     * Print out ALL command exceptions as a stack trace to stdout, even simple syntax errors
+     */
+    public final Setting<Boolean> verboseCommandExceptions = new Setting<>(false);
 
     /**
      * The size of the box that is rendered when the current goal is a GoalYLevel

@@ -15,25 +15,12 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package baritone.launch.mixins;
+package baritone.utils.accessor;
 
-import baritone.utils.accessor.IChunkProviderClient;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import net.minecraft.client.multiplayer.ChunkProviderClient;
-import net.minecraft.world.chunk.Chunk;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
+import net.minecraft.client.multiplayer.ClientChunkProvider;
 
-@Mixin(ChunkProviderClient.class)
-public class MixinChunkProviderClient implements IChunkProviderClient {
+public interface IClientChunkProvider {
+    ClientChunkProvider createThreadSafeCopy();
 
-    @Shadow
-    @Final
-    private Long2ObjectMap<Chunk> loadedChunks;
-
-    @Override
-    public Long2ObjectMap<Chunk> loadedChunks() {
-        return this.loadedChunks;
-    }
+    IChunkArray extractReferenceArray();
 }

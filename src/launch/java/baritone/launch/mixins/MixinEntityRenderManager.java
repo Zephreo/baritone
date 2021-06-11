@@ -17,31 +17,26 @@
 
 package baritone.launch.mixins;
 
-import baritone.utils.accessor.IBitArray;
-import baritone.utils.accessor.IBlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.BitArray;
-import net.minecraft.world.chunk.BlockStateContainer;
-import net.minecraft.world.chunk.IBlockStatePalette;
+import baritone.utils.accessor.IEntityRenderManager;
+import net.minecraft.client.renderer.entity.EntityRendererManager;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin(BlockStateContainer.class)
-public abstract class MixinBlockStateContainer implements IBlockStateContainer {
+@Mixin(EntityRendererManager.class)
+public class MixinEntityRenderManager implements IEntityRenderManager {
 
-    @Shadow
-    protected BitArray storage;
-
-    @Shadow
-    protected IBlockStatePalette palette;
 
     @Override
-    public IBlockState getAtPalette(int index) {
-        return palette.getBlockState(index);
+    public double renderPosX() {
+        return ((EntityRendererManager) (Object) this).info.getProjectedView().x;
     }
 
     @Override
-    public int[] storageArray() {
-        return ((IBitArray) storage).toArray();
+    public double renderPosY() {
+        return ((EntityRendererManager) (Object) this).info.getProjectedView().y;
+    }
+
+    @Override
+    public double renderPosZ() {
+        return ((EntityRendererManager) (Object) this).info.getProjectedView().z;
     }
 }

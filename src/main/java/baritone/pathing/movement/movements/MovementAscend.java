@@ -28,10 +28,10 @@ import baritone.pathing.movement.MovementHelper;
 import baritone.pathing.movement.MovementState;
 import baritone.utils.BlockStateInterface;
 import com.google.common.collect.ImmutableSet;
-import net.minecraft.block.BlockFalling;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.FallingBlock;
+import net.minecraft.util.Direction;
 
 import java.util.Set;
 
@@ -66,7 +66,7 @@ public class MovementAscend extends Movement {
     }
 
     public static double cost(CalculationContext context, int x, int y, int z, int destX, int destZ) {
-        IBlockState toPlace = context.get(destX, y, destZ);
+        BlockState toPlace = context.get(destX, y, destZ);
         double additionalPlacementCost = 0;
         if (!MovementHelper.canWalkOn(context.bsi, destX, y, destZ, toPlace)) {
             additionalPlacementCost = context.costOfPlacingAt(destX, y, destZ, toPlace);
@@ -93,26 +93,26 @@ public class MovementAscend extends Movement {
                 return COST_INF;
             }
         }
-        IBlockState srcUp2 = context.get(x, y + 2, z); // used lower down anyway
-        if (context.get(x, y + 3, z).getBlock() instanceof BlockFalling && (MovementHelper.canWalkThrough(context.bsi, x, y + 1, z) || !(srcUp2.getBlock() instanceof BlockFalling))) {//it would fall on us and possibly suffocate us
+        BlockState srcUp2 = context.get(x, y + 2, z); // used lower down anyway
+        if (context.get(x, y + 3, z).getBlock() instanceof FallingBlock && (MovementHelper.canWalkThrough(context.bsi, x, y + 1, z) || !(srcUp2.getBlock() instanceof FallingBlock))) {//it would fall on us and possibly suffocate us
             // HOWEVER, we assume that we're standing in the start position
             // that means that src and src.up(1) are both air
             // maybe they aren't now, but they will be by the time this starts
             // if the lower one is can't walk through and the upper one is falling, that means that by standing on src
             // (the presupposition of this Movement)
-            // we have necessarily already cleared the entire BlockFalling stack
+            // we have necessarily already cleared the entire FallingBlock stack
             // on top of our head
 
-            // as in, if we have a block, then two BlockFallings on top of it
+            // as in, if we have a block, then two FallingBlocks on top of it
             // and that block is x, y+1, z, and we'd have to clear it to even start this movement
-            // we don't need to worry about those BlockFallings because we've already cleared them
+            // we don't need to worry about those FallingBlocks because we've already cleared them
             return COST_INF;
             // you may think we only need to check srcUp2, not srcUp
             // however, in the scenario where glitchy world gen where unsupported sand / gravel generates
             // it's possible srcUp is AIR from the start, and srcUp2 is falling
             // and in that scenario, when we arrive and break srcUp2, that lets srcUp3 fall on us and suffocate us
         }
-        IBlockState srcDown = context.get(x, y - 1, z);
+        BlockState srcDown = context.get(x, y - 1, z);
         if (srcDown.getBlock() == Blocks.LADDER || srcDown.getBlock() == Blocks.VINE) {
             return COST_INF;
         }
@@ -172,12 +172,12 @@ public class MovementAscend extends Movement {
             return state.setStatus(MovementStatus.SUCCESS);
         }
 
-        IBlockState jumpingOnto = BlockStateInterface.get(ctx, positionToPlace);
+        BlockState jumpingOnto = BlockStateInterface.get(ctx, positionToPlace);
         if (!MovementHelper.canWalkOn(ctx, positionToPlace, jumpingOnto)) {
             ticksWithoutPlacement++;
             if (MovementHelper.attemptToPlaceABlock(state, baritone, dest.down(), false, true) == PlaceResult.READY_TO_PLACE) {
                 state.setInput(Input.SNEAK, true);
-                if (ctx.player().isSneaking()) {
+                if (ctx.player().isCrouching()) {
                     state.setInput(Input.CLICK_RIGHT, true);
                 }
             }
@@ -200,10 +200,10 @@ public class MovementAscend extends Movement {
 
         int xAxis = Math.abs(src.getX() - dest.getX()); // either 0 or 1
         int zAxis = Math.abs(src.getZ() - dest.getZ()); // either 0 or 1
-        double flatDistToNext = xAxis * Math.abs((dest.getX() + 0.5D) - ctx.player().posX) + zAxis * Math.abs((dest.getZ() + 0.5D) - ctx.player().posZ);
-        double sideDist = zAxis * Math.abs((dest.getX() + 0.5D) - ctx.player().posX) + xAxis * Math.abs((dest.getZ() + 0.5D) - ctx.player().posZ);
+        double flatDistToNext = xAxis * Math.abs((dest.getX() + 0.5D) - ctx.player().getPositionVec().x) + zAxis * Math.abs((dest.getZ() + 0.5D) - ctx.player().getPositionVec().z);
+        double sideDist = zAxis * Math.abs((dest.getX() + 0.5D) - ctx.player().getPositionVec().x) + xAxis * Math.abs((dest.getZ() + 0.5D) - ctx.player().getPositionVec().z);
 
-        double lateralMotion = xAxis * ctx.player().motionZ + zAxis * ctx.player().motionX;
+        double lateralMotion = xAxis * ctx.player().getMotion().z + zAxis * ctx.player().getMotion().x;
         if (Math.abs(lateralMotion) > 0.1) {
             return state;
         }
@@ -225,7 +225,7 @@ public class MovementAscend extends Movement {
     public boolean headBonkClear() {
         BetterBlockPos startUp = src.up(2);
         for (int i = 0; i < 4; i++) {
-            BetterBlockPos check = startUp.offset(EnumFacing.byHorizontalIndex(i));
+            BetterBlockPos check = startUp.offset(Direction.byHorizontalIndex(i));
             if (!MovementHelper.canWalkThrough(ctx, check)) {
                 // We might bonk our head
                 return false;

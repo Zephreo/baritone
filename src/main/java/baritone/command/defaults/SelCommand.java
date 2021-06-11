@@ -22,7 +22,7 @@ import baritone.api.IBaritone;
 import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.datatypes.ForBlockOptionalMeta;
-import baritone.api.command.datatypes.ForEnumFacing;
+import baritone.api.command.datatypes.ForDirection;
 import baritone.api.command.datatypes.RelativeBlockPos;
 import baritone.api.command.exception.CommandException;
 import baritone.api.command.exception.CommandInvalidStateException;
@@ -37,11 +37,10 @@ import baritone.api.utils.BetterBlockPos;
 import baritone.api.utils.BlockOptionalMeta;
 import baritone.api.utils.BlockOptionalMetaLookup;
 import baritone.utils.IRenderer;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.math.vector.Vector3i;
 
 import java.awt.*;
 import java.util.List;
@@ -67,7 +66,7 @@ public class SelCommand extends Command {
                 float lineWidth = Baritone.settings().selectionLineWidth.value;
                 boolean ignoreDepth = Baritone.settings().renderSelectionIgnoreDepth.value;
                 IRenderer.startLines(color, opacity, lineWidth, ignoreDepth);
-                IRenderer.drawAABB(new AxisAlignedBB(pos1, pos1.add(1, 1, 1)));
+                IRenderer.drawAABB(event.getModelViewStack(), new AxisAlignedBB(pos1, pos1.add(1, 1, 1)));
                 IRenderer.endLines(ignoreDepth);
             }
         });
@@ -83,7 +82,7 @@ public class SelCommand extends Command {
             if (action == Action.POS2 && pos1 == null) {
                 throw new CommandInvalidStateException("Set pos1 first before using pos2");
             }
-            BetterBlockPos playerPos = mc.getRenderViewEntity() != null ? BetterBlockPos.from(new BlockPos(mc.getRenderViewEntity())) : ctx.playerFeet();
+            BetterBlockPos playerPos = mc.getRenderViewEntity() != null ? BetterBlockPos.from(mc.getRenderViewEntity().getPosition()) : ctx.playerFeet();
             BetterBlockPos pos = args.hasAny() ? args.getDatatypePost(RelativeBlockPos.INSTANCE, playerPos) : playerPos;
             args.requireMax(0);
             if (action == Action.POS1) {
@@ -144,7 +143,7 @@ public class SelCommand extends Command {
                 );
             }
             for (ISelection selection : selections) {
-                Vec3i size = selection.size();
+                Vector3i size = selection.size();
                 BetterBlockPos min = selection.min();
                 ISchematic schematic = new FillSchematic(size.getX(), size.getY(), size.getZ(), type);
                 if (action == Action.WALLS) {
@@ -164,7 +163,7 @@ public class SelCommand extends Command {
             if (transformTarget == null) {
                 throw new CommandInvalidStateException("Invalid transform type");
             }
-            EnumFacing direction = args.getDatatypeFor(ForEnumFacing.INSTANCE);
+            Direction direction = args.getDatatypeFor(ForDirection.INSTANCE);
             int blocks = args.getAs(Integer.class);
             ISelection[] selections = manager.getSelections();
             if (selections.length < 1) {
@@ -216,7 +215,7 @@ public class SelCommand extends Command {
                     } else {
                         TransformTarget target = TransformTarget.getByName(args.getString());
                         if (target != null && args.hasExactlyOne()) {
-                            return args.tabCompleteDatatype(ForEnumFacing.INSTANCE);
+                            return args.tabCompleteDatatype(ForDirection.INSTANCE);
                         }
                     }
                 }

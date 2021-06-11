@@ -13,3 +13,5 @@ COPY . /code
 WORKDIR /code
 
 RUN ./gradlew build
+RUN ./gradlew build -Pbaritone.forge_build
+RUN ./gradlew build -Pbaritone.fabric_build

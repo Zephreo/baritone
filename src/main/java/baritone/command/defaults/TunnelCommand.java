@@ -23,7 +23,7 @@ import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.exception.CommandException;
 import baritone.api.pathing.goals.Goal;
 import baritone.api.pathing.goals.GoalStrictDirection;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.Arrays;
@@ -55,7 +55,7 @@ public class TunnelCommand extends Command {
                 width--;
                 BlockPos corner1;
                 BlockPos corner2;
-                EnumFacing enumFacing = ctx.player().getHorizontalFacing();
+                Direction enumFacing = ctx.player().getHorizontalFacing();
                 int addition = ((width % 2 == 0) ? 0 : 1);
                 switch (enumFacing) {
                     case EAST:

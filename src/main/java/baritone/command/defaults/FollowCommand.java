@@ -27,10 +27,11 @@ import baritone.api.command.datatypes.NearbyPlayer;
 import baritone.api.command.exception.CommandException;
 import baritone.api.command.helpers.TabCompleteHelper;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityList;
-import net.minecraft.entity.EntityLiving;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Registry;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -48,7 +49,7 @@ public class FollowCommand extends Command {
         FollowGroup group;
         FollowList list;
         List<Entity> entities = new ArrayList<>();
-        List<Class<? extends Entity>> classes = new ArrayList<>();
+        List<EntityType> classes = new ArrayList<>();
         if (args.hasExactlyOne()) {
             baritone.getFollowProcess().follow((group = args.getEnum(FollowGroup.class)).filter);
         } else {
@@ -57,17 +58,18 @@ public class FollowCommand extends Command {
             list = args.getEnum(FollowList.class);
             while (args.hasAny()) {
                 Object gotten = args.getDatatypeFor(list.datatype);
-                if (gotten instanceof Class) {
+                if (gotten instanceof EntityType) {
                     //noinspection unchecked
-                    classes.add((Class<? extends Entity>) gotten);
+                    classes.add((EntityType) gotten);
                 } else {
                     entities.add((Entity) gotten);
                 }
             }
+
             baritone.getFollowProcess().follow(
                     classes.isEmpty()
                             ? entities::contains
-                            : e -> classes.stream().anyMatch(c -> c.isInstance(e))
+                            : e -> classes.stream().anyMatch(c -> e.getType().equals(c))
             );
         }
         if (group != null) {
@@ -80,7 +82,7 @@ public class FollowCommand extends Command {
                         .forEach(this::logDirect);
             } else {
                 classes.stream()
-                        .map(EntityList::getKey)
+                        .map(Registry.ENTITY_TYPE::getKey)
                         .map(Objects::requireNonNull)
                         .map(ResourceLocation::toString)
                         .forEach(this::logDirect);
@@ -133,8 +135,8 @@ public class FollowCommand extends Command {
 
     @KeepName
     private enum FollowGroup {
-        ENTITIES(EntityLiving.class::isInstance),
-        PLAYERS(EntityPlayer.class::isInstance); /* ,
+        ENTITIES(LivingEntity.class::isInstance),
+        PLAYERS(PlayerEntity.class::isInstance); /* ,
         FRIENDLY(entity -> entity.getAttackTarget() != HELPER.mc.player),
         HOSTILE(FRIENDLY.filter.negate()); */
         final Predicate<Entity> filter;

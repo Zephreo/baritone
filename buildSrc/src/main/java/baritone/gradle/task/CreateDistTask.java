@@ -23,9 +23,9 @@ import javax.xml.bind.DatatypeConverter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
@@ -42,11 +42,9 @@ public class CreateDistTask extends BaritoneGradleTask {
         super.verifyArtifacts();
 
         // Define the distribution file paths
-        Path api             = getRelativeFile("dist/" + formatVersion(ARTIFACT_API));
-        Path standalone      = getRelativeFile("dist/" + formatVersion(ARTIFACT_STANDALONE));
-        Path unoptimized     = getRelativeFile("dist/" + formatVersion(ARTIFACT_UNOPTIMIZED));
-        Path forgeApi        = getRelativeFile("dist/" + formatVersion(ARTIFACT_FORGE_API));
-        Path forgeStandalone = getRelativeFile("dist/" + formatVersion(ARTIFACT_FORGE_STANDALONE));
+        Path api = getRelativeFile("dist/" + getFileName(artifactApiPath));
+        Path standalone = getRelativeFile("dist/" + getFileName(artifactStandalonePath));
+        Path unoptimized = getRelativeFile("dist/" + getFileName(artifactUnoptimizedPath));
 
         // NIO will not automatically create directories
         Path dir = getRelativeFile("dist/");
@@ -55,14 +53,14 @@ public class CreateDistTask extends BaritoneGradleTask {
         }
 
         // Copy build jars to dist/
-        Files.copy(this.artifactApiPath,             api,             REPLACE_EXISTING);
-        Files.copy(this.artifactStandalonePath,      standalone,      REPLACE_EXISTING);
-        Files.copy(this.artifactUnoptimizedPath,     unoptimized,     REPLACE_EXISTING);
-        Files.copy(this.artifactForgeApiPath,        forgeApi,        REPLACE_EXISTING);
-        Files.copy(this.artifactForgeStandalonePath, forgeStandalone, REPLACE_EXISTING);
+        // TODO: dont copy files that dont exist
+        Files.copy(this.artifactApiPath, api, REPLACE_EXISTING);
+        Files.copy(this.artifactStandalonePath, standalone, REPLACE_EXISTING);
+        Files.copy(this.artifactUnoptimizedPath, unoptimized, REPLACE_EXISTING);
 
         // Calculate all checksums and format them like "shasum"
-        List<String> shasum = Stream.of(api, forgeApi, standalone, forgeStandalone, unoptimized)
+        List<String> shasum = getAllDistJars().stream()
+                .filter(Files::exists)
                 .map(path -> sha1(path) + "  " + path.getFileName().toString())
                 .collect(Collectors.toList());
 
@@ -70,6 +68,24 @@ public class CreateDistTask extends BaritoneGradleTask {
 
         // Write the checksums to a file
         Files.write(getRelativeFile("dist/checksums.txt"), shasum);
+    }
+
+    private static String getFileName(Path p) {
+        return p.getFileName().toString();
+    }
+
+    private List<Path> getAllDistJars() {
+        return Arrays.asList(
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_API)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_FABRIC_API)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_FORGE_API)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_STANDALONE)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_FABRIC_STANDALONE)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_FORGE_STANDALONE)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_UNOPTIMIZED)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_FABRIC_UNOPTIMIZED)),
+                getRelativeFile("dist/" + formatVersion(ARTIFACT_FORGE_UNOPTIMIZED))
+        );
     }
 
     private static synchronized String sha1(Path path) {

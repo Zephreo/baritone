@@ -21,7 +21,7 @@ import baritone.api.cache.IWorldScanner;
 import baritone.api.command.ICommand;
 import baritone.api.command.ICommandSystem;
 import baritone.api.schematic.ISchematicSystem;
-import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 
 import java.util.List;
 import java.util.Objects;
@@ -47,19 +47,19 @@ public interface IBaritoneProvider {
      * returned by {@link #getPrimaryBaritone()}.
      *
      * @return All active {@link IBaritone} instances.
-     * @see #getBaritoneForPlayer(EntityPlayerSP)
+     * @see #getBaritoneForPlayer(ClientPlayerEntity)
      */
     List<IBaritone> getAllBaritones();
 
     /**
-     * Provides the {@link IBaritone} instance for a given {@link EntityPlayerSP}. This will likely be
+     * Provides the {@link IBaritone} instance for a given {@link ClientPlayerEntity}. This will likely be
      * replaced with or be overloaded in addition to {@code #getBaritoneForUser(IBaritoneUser)} when
      * {@code bot-system} is merged into {@code master}.
      *
      * @param player The player
      * @return The {@link IBaritone} instance.
      */
-    default IBaritone getBaritoneForPlayer(EntityPlayerSP player) {
+    default IBaritone getBaritoneForPlayer(ClientPlayerEntity player) {
         for (IBaritone baritone : getAllBaritones()) {
             if (Objects.equals(player, baritone.getPlayerContext().player())) {
                 return baritone;

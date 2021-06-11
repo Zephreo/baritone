@@ -22,14 +22,14 @@ import baritone.api.cache.IWorldScanner;
 import baritone.api.utils.BetterBlockPos;
 import baritone.api.utils.BlockOptionalMetaLookup;
 import baritone.api.utils.IPlayerContext;
-import baritone.utils.accessor.IBlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.multiplayer.ChunkProviderClient;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.multiplayer.ClientChunkProvider;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.palette.PalettedContainer;
+import net.minecraft.world.chunk.AbstractChunkProvider;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+import net.minecraft.world.chunk.ChunkSection;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -47,8 +47,7 @@ public enum WorldScanner implements IWorldScanner {
         if (filter.blocks().isEmpty()) {
             return res;
         }
-
-        ChunkProviderClient chunkProvider = (ChunkProviderClient) ctx.world().getChunkProvider();
+        ClientChunkProvider chunkProvider = (ClientChunkProvider) ctx.world().getChunkProvider();
 
         int maxSearchRadiusSq = maxSearchRadius * maxSearchRadius;
         int playerChunkX = ctx.playerFeet().getX() >> 4;
@@ -72,7 +71,7 @@ public enum WorldScanner implements IWorldScanner {
                     foundChunks = true;
                     int chunkX = xoff + playerChunkX;
                     int chunkZ = zoff + playerChunkZ;
-                    Chunk chunk = chunkProvider.getLoadedChunk(chunkX, chunkZ);
+                    Chunk chunk = chunkProvider.getChunk(chunkX, chunkZ, null, false);
                     if (chunk == null) {
                         continue;
                     }
@@ -98,8 +97,8 @@ public enum WorldScanner implements IWorldScanner {
             return Collections.emptyList();
         }
 
-        ChunkProviderClient chunkProvider = (ChunkProviderClient) ctx.world().getChunkProvider();
-        Chunk chunk = chunkProvider.getLoadedChunk(pos.x, pos.z);
+        ClientChunkProvider chunkProvider = (ClientChunkProvider) ctx.world().getChunkProvider();
+        Chunk chunk = chunkProvider.getChunk(pos.x, pos.z, null, false);
         int playerY = ctx.playerFeet().getY();
 
         if (chunk == null || chunk.isEmpty()) {
@@ -118,7 +117,7 @@ public enum WorldScanner implements IWorldScanner {
 
     @Override
     public int repack(IPlayerContext ctx, int range) {
-        IChunkProvider chunkProvider = ctx.world().getChunkProvider();
+        AbstractChunkProvider chunkProvider = ctx.world().getChunkProvider();
         ICachedWorld cachedWorld = ctx.worldData().getCachedWorld();
 
         BetterBlockPos playerPos = ctx.playerFeet();
@@ -134,7 +133,7 @@ public enum WorldScanner implements IWorldScanner {
         int queued = 0;
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                Chunk chunk = chunkProvider.getLoadedChunk(x, z);
+                Chunk chunk = chunkProvider.getChunk(x, z, false);
 
                 if (chunk != null && !chunk.isEmpty()) {
                     queued++;
@@ -147,36 +146,36 @@ public enum WorldScanner implements IWorldScanner {
     }
 
     private boolean scanChunkInto(int chunkX, int chunkZ, Chunk chunk, BlockOptionalMetaLookup filter, Collection<BlockPos> result, int max, int yLevelThreshold, int playerY, int[] coordinateIterationOrder) {
-        ExtendedBlockStorage[] chunkInternalStorageArray = chunk.getBlockStorageArray();
+        ChunkSection[] chunkInternalStorageArray = chunk.getSections();
         boolean foundWithinY = false;
         for (int yIndex = 0; yIndex < 16; yIndex++) {
             int y0 = coordinateIterationOrder[yIndex];
-            ExtendedBlockStorage extendedblockstorage = chunkInternalStorageArray[y0];
-            if (extendedblockstorage == null) {
+            ChunkSection section = chunkInternalStorageArray[y0];
+            if (section == null || ChunkSection.isEmpty(section)) {
                 continue;
             }
             int yReal = y0 << 4;
-            IBlockStateContainer bsc = (IBlockStateContainer) extendedblockstorage.getData();
-            // storageArray uses an optimized algorithm that's faster than getAt
-            // creating this array and then using getAtPalette is faster than even getFast(int index)
-            int[] storage = bsc.storageArray();
-            final int imax = 1 << 12;
-            for (int i = 0; i < imax; i++) {
-                IBlockState state = bsc.getAtPalette(storage[i]);
-                if (filter.has(state)) {
-                    int y = yReal | ((i >> 8) & 15);
-                    if (result.size() >= max) {
-                        if (Math.abs(y - playerY) < yLevelThreshold) {
-                            foundWithinY = true;
-                        } else {
-                            if (foundWithinY) {
-                                // have found within Y in this chunk, so don't need to consider outside Y
-                                // TODO continue iteration to one more sorted Y coordinate block
-                                return true;
+            PalettedContainer<BlockState> bsc = section.getData();
+            for (int yy = 0; yy < 16; yy++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int x = 0; x < 16; x++) {
+                        BlockState state = bsc.get(x, yy, z);
+                        if (filter.has(state)) {
+                            int y = yReal | yy;
+                            if (result.size() >= max) {
+                                if (Math.abs(y - playerY) < yLevelThreshold) {
+                                    foundWithinY = true;
+                                } else {
+                                    if (foundWithinY) {
+                                        // have found within Y in this chunk, so don't need to consider outside Y
+                                        // TODO continue iteration to one more sorted Y coordinate block
+                                        return true;
+                                    }
+                                }
                             }
+                            result.add(new BlockPos(chunkX | x, y, chunkZ | z));
                         }
                     }
-                    result.add(new BlockPos(chunkX | (i & 15), y, chunkZ | ((i >> 4) & 15)));
                 }
             }
         }

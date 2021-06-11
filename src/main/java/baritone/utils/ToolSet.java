@@ -19,15 +19,13 @@ package baritone.utils;
 
 import baritone.Baritone;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.init.Enchantments;
-import net.minecraft.init.MobEffects;
-import net.minecraft.item.Item.ToolMaterial;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemSword;
-import net.minecraft.item.ItemTool;
+import net.minecraft.item.ToolItem;
+import net.minecraft.potion.Effects;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,9 +49,9 @@ public class ToolSet {
      */
     private final Function<Block, Double> backendCalculation;
 
-    private final EntityPlayerSP player;
+    private final ClientPlayerEntity player;
 
-    public ToolSet(EntityPlayerSP player) {
+    public ToolSet(ClientPlayerEntity player) {
         breakStrengthCache = new HashMap<>();
         this.player = player;
 
@@ -72,24 +70,18 @@ public class ToolSet {
      * @param state the blockstate to be mined
      * @return the speed of how fast we'll mine it. 1/(time in ticks)
      */
-    public double getStrVsBlock(IBlockState state) {
+    public double getStrVsBlock(BlockState state) {
         return breakStrengthCache.computeIfAbsent(state.getBlock(), backendCalculation);
     }
 
     /**
-     * Evaluate the material cost of a possible tool. The priority matches the
-     * listed order in the Item.ToolMaterial enum.
+     * Evaluate the material cost of a possible tool. Will return 1 for tools, -1 for other
      *
      * @param itemStack a possibly empty ItemStack
-     * @return values range from -1 to 4
+     * @return Either 1 or -1
      */
     private int getMaterialCost(ItemStack itemStack) {
-        if (itemStack.getItem() instanceof ItemTool) {
-            ItemTool tool = (ItemTool) itemStack.getItem();
-            return ToolMaterial.valueOf(tool.getToolMaterialName()).ordinal();
-        } else {
-            return -1;
-        }
+        return itemStack.getItem() instanceof ToolItem ? 1 : -1;
     }
 
     public boolean hasSilkTouch(ItemStack stack) {
@@ -122,16 +114,9 @@ public class ToolSet {
         double highestSpeed = Double.NEGATIVE_INFINITY;
         int lowestCost = Integer.MIN_VALUE;
         boolean bestSilkTouch = false;
-        IBlockState blockState = b.getDefaultState();
+        BlockState blockState = b.getDefaultState();
         for (int i = 0; i < 9; i++) {
             ItemStack itemStack = player.inventory.getStackInSlot(i);
-            if (!Baritone.settings().useSwordToMine.value && itemStack.getItem() instanceof ItemSword) {
-                continue;
-            }
-          
-            if (Baritone.settings().itemSaver.value && itemStack.getItemDamage() >= itemStack.getMaxDamage() && itemStack.getMaxDamage() > 1) {
-                continue;
-            }
             double speed = calculateSpeedVsBlock(itemStack, blockState);
             boolean silkTouch = hasSilkTouch(itemStack);
             if (speed > highestSpeed) {
@@ -176,7 +161,7 @@ public class ToolSet {
      * @param state the blockstate to be mined
      * @return how long it would take in ticks
      */
-    public static double calculateSpeedVsBlock(ItemStack item, IBlockState state) {
+    public static double calculateSpeedVsBlock(ItemStack item, BlockState state) {
         float hardness = state.getBlockHardness(null, null);
         if (hardness < 0) {
             return -1;
@@ -191,7 +176,7 @@ public class ToolSet {
         }
 
         speed /= hardness;
-        if (state.getMaterial().isToolNotRequired() || (!item.isEmpty() && item.canHarvestBlock(state))) {
+        if (!state.getRequiresTool() || (!item.isEmpty() && item.canHarvestBlock(state))) {
             return speed / 30;
         } else {
             return speed / 100;
@@ -205,11 +190,11 @@ public class ToolSet {
      */
     private double potionAmplifier() {
         double speed = 1;
-        if (player.isPotionActive(MobEffects.HASTE)) {
-            speed *= 1 + (player.getActivePotionEffect(MobEffects.HASTE).getAmplifier() + 1) * 0.2;
+        if (player.isPotionActive(Effects.HASTE)) {
+            speed *= 1 + (player.getActivePotionEffect(Effects.HASTE).getAmplifier() + 1) * 0.2;
         }
-        if (player.isPotionActive(MobEffects.MINING_FATIGUE)) {
-            switch (player.getActivePotionEffect(MobEffects.MINING_FATIGUE).getAmplifier()) {
+        if (player.isPotionActive(Effects.MINING_FATIGUE)) {
+            switch (player.getActivePotionEffect(Effects.MINING_FATIGUE).getAmplifier()) {
                 case 0:
                     speed *= 0.3;
                     break;

@@ -25,12 +25,12 @@ import baritone.utils.BlockStateInterface;
 import baritone.utils.ToolSet;
 import baritone.utils.pathing.BetterWorldBorder;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.init.Items;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -81,13 +81,13 @@ public class CalculationContext {
     public CalculationContext(IBaritone baritone, boolean forUseOnAnotherThread) {
         this.safeForThreadedUse = forUseOnAnotherThread;
         this.baritone = baritone;
-        EntityPlayerSP player = baritone.getPlayerContext().player();
+        ClientPlayerEntity player = baritone.getPlayerContext().player();
         this.world = baritone.getPlayerContext().world();
         this.worldData = (WorldData) baritone.getWorldProvider().getCurrentWorld();
         this.bsi = new BlockStateInterface(world, worldData, forUseOnAnotherThread);
         this.toolSet = new ToolSet(player);
         this.hasThrowaway = Baritone.settings().allowPlace.value && ((Baritone) baritone).getInventoryBehavior().hasGenericThrowaway();
-        this.hasWaterBucket = Baritone.settings().allowWaterBucketFall.value && InventoryPlayer.isHotbar(player.inventory.getSlotFor(STACK_BUCKET_WATER)) && !world.provider.isNether();
+        this.hasWaterBucket = Baritone.settings().allowWaterBucketFall.value && PlayerInventory.isHotbar(player.inventory.getSlotFor(STACK_BUCKET_WATER)) && world.getDimensionKey() != World.THE_NETHER;
         this.canSprint = Baritone.settings().allowSprint.value && player.getFoodStats().getFoodLevel() > 6;
         this.placeBlockCost = Baritone.settings().blockPlacementPenalty.value;
         this.allowBreak = Baritone.settings().allowBreak.value;
@@ -123,7 +123,7 @@ public class CalculationContext {
         return baritone;
     }
 
-    public IBlockState get(int x, int y, int z) {
+    public BlockState get(int x, int y, int z) {
         return bsi.get0(x, y, z); // laughs maniacally
     }
 
@@ -131,7 +131,7 @@ public class CalculationContext {
         return bsi.isLoaded(x, z);
     }
 
-    public IBlockState get(BlockPos pos) {
+    public BlockState get(BlockPos pos) {
         return get(pos.getX(), pos.getY(), pos.getZ());
     }
 
@@ -139,7 +139,7 @@ public class CalculationContext {
         return get(x, y, z).getBlock();
     }
 
-    public double costOfPlacingAt(int x, int y, int z, IBlockState current) {
+    public double costOfPlacingAt(int x, int y, int z, BlockState current) {
         if (!hasThrowaway) { // only true if allowPlace is true, see constructor
             return COST_INF;
         }
@@ -153,7 +153,7 @@ public class CalculationContext {
         return placeBlockCost;
     }
 
-    public double breakCostMultiplierAt(int x, int y, int z, IBlockState current) {
+    public double breakCostMultiplierAt(int x, int y, int z, BlockState current) {
         if (!allowBreak) {
             return COST_INF;
         }

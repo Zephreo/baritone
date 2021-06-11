@@ -20,8 +20,10 @@ package baritone.cache;
 import baritone.Baritone;
 import baritone.api.cache.ICachedRegion;
 import baritone.api.utils.BlockUtils;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -60,14 +62,14 @@ public final class CachedRegion implements ICachedRegion {
      */
     private final int z;
 
-    private final int dimension;
+    private final RegistryKey<World> dimension;
 
     /**
      * Has this region been modified since its most recent load or save
      */
     private boolean hasUnsavedChanges;
 
-    CachedRegion(int x, int z, int dimension) {
+    CachedRegion(int x, int z, RegistryKey<World> dimension) {
         this.x = x;
         this.z = z;
         this.hasUnsavedChanges = false;
@@ -75,7 +77,7 @@ public final class CachedRegion implements ICachedRegion {
     }
 
     @Override
-    public final IBlockState getBlock(int x, int y, int z) {
+    public final BlockState getBlock(int x, int y, int z) {
         CachedChunk chunk = chunks[x >> 4][z >> 4];
         if (chunk != null) {
             return chunk.getBlock(x & 15, y, z & 15, dimension);
@@ -216,7 +218,7 @@ public final class CachedRegion implements ICachedRegion {
                 boolean[][] present = new boolean[32][32];
                 BitSet[][] bitSets = new BitSet[32][32];
                 Map<String, List<BlockPos>>[][] location = new Map[32][32];
-                IBlockState[][][] overview = new IBlockState[32][32][];
+                BlockState[][][] overview = new BlockState[32][32][];
                 long[][] cacheTimestamp = new long[32][32];
                 for (int x = 0; x < 32; x++) {
                     for (int z = 0; z < 32; z++) {
@@ -227,7 +229,7 @@ public final class CachedRegion implements ICachedRegion {
                                 in.readFully(bytes);
                                 bitSets[x][z] = BitSet.valueOf(bytes);
                                 location[x][z] = new HashMap<>();
-                                overview[x][z] = new IBlockState[256];
+                                overview[x][z] = new BlockState[256];
                                 present[x][z] = true;
                                 break;
                             case CHUNK_NOT_PRESENT:

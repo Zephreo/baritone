@@ -24,7 +24,6 @@ import baritone.api.command.exception.CommandException;
 import baritone.api.command.exception.CommandInvalidStateException;
 import baritone.api.pathing.goals.GoalBlock;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +42,7 @@ public class ComeCommand extends Command {
         if (entity == null) {
             throw new CommandInvalidStateException("render view entity is null");
         }
-        baritone.getCustomGoalProcess().setGoalAndPath(new GoalBlock(new BlockPos(entity)));
+        baritone.getCustomGoalProcess().setGoalAndPath(new GoalBlock(entity.getPosition()));
         logDirect("Coming");
     }
 

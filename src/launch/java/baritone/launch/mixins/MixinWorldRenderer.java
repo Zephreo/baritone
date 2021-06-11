@@ -20,26 +20,33 @@ package baritone.launch.mixins;
 import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.event.events.RenderEvent;
-import net.minecraft.client.renderer.EntityRenderer;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.renderer.ActiveRenderInfo;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.util.math.vector.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-@Mixin(EntityRenderer.class)
-public class MixinEntityRenderer {
+/**
+ * @author Brady
+ * @since 2/13/2020
+ */
+@Mixin(WorldRenderer.class)
+public class MixinWorldRenderer {
 
     @Inject(
-            method = "renderWorldPass",
-            at = @At(
-                    value = "INVOKE_STRING",
-                    target = "Lnet/minecraft/profiler/Profiler;endStartSection(Ljava/lang/String;)V",
-                    args = {"ldc=hand"}
-            )
+            method = "updateCameraAndRender",
+            at = @At("RETURN"),
+            locals = LocalCapture.CAPTURE_FAILSOFT
     )
-    private void renderWorldPass(int pass, float partialTicks, long finishTimeNano, CallbackInfo ci) {
+    private void onStartHand(MatrixStack matrixStackIn, float partialTicks, long finishTimeNano, boolean drawBlockOutline, ActiveRenderInfo activeRenderInfoIn, GameRenderer gameRendererIn, LightTexture lightmapIn, Matrix4f projectionIn, CallbackInfo ci) {
         for (IBaritone ibaritone : BaritoneAPI.getProvider().getAllBaritones()) {
-            ibaritone.getGameEventHandler().onRenderPass(new RenderEvent(partialTicks));
+            ibaritone.getGameEventHandler().onRenderPass(new RenderEvent(partialTicks, matrixStackIn, projectionIn));
         }
     }
 }

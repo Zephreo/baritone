@@ -18,14 +18,13 @@
 package baritone.api.event.listener;
 
 import baritone.api.event.events.*;
-import io.netty.util.concurrent.GenericFutureListener;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.gui.GuiGameOver;
-import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.client.settings.GameSettings;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.gui.screen.DeathScreen;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.network.Packet;
+import net.minecraft.network.IPacket;
+import net.minecraft.util.math.vector.Vector3d;
 
 /**
  * @author Brady
@@ -45,7 +44,7 @@ public interface IGameEventListener {
      * Run once per game tick from before and after the player rotation is sent to the server.
      *
      * @param event The event
-     * @see EntityPlayerSP#onUpdate()
+     * @see ClientPlayerEntity#tick()
      */
     void onPlayerUpdate(PlayerUpdateEvent event);
 
@@ -53,7 +52,7 @@ public interface IGameEventListener {
      * Runs whenever the client player sends a message to the server.
      *
      * @param event The event
-     * @see EntityPlayerSP#sendChatMessage(String)
+     * @see ClientPlayerEntity#sendChatMessage(String)
      */
     void onSendChatMessage(ChatEvent event);
 
@@ -68,14 +67,11 @@ public interface IGameEventListener {
      * Runs before and after whenever a chunk is either loaded, unloaded, or populated.
      *
      * @param event The event
-     * @see WorldClient#doPreChunk(int, int, boolean)
      */
     void onChunkEvent(ChunkEvent event);
 
     /**
-     * Runs once per world render pass. Two passes are made when {@link GameSettings#anaglyph} is on.
-     * <p>
-     * <b>Note:</b> {@link GameSettings#anaglyph} has been removed in Minecraft 1.13
+     * Runs once per world render pass.
      *
      * @param event The event
      */
@@ -85,7 +81,7 @@ public interface IGameEventListener {
      * Runs before and after whenever a new world is loaded
      *
      * @param event The event
-     * @see Minecraft#loadWorld(WorldClient, String)
+     * @see Minecraft#loadWorld(ClientWorld)
      */
     void onWorldEvent(WorldEvent event);
 
@@ -93,8 +89,7 @@ public interface IGameEventListener {
      * Runs before a outbound packet is sent
      *
      * @param event The event
-     * @see Packet
-     * @see GenericFutureListener
+     * @see IPacket
      */
     void onSendPacket(PacketEvent event);
 
@@ -102,8 +97,7 @@ public interface IGameEventListener {
      * Runs before an inbound packet is processed
      *
      * @param event The event
-     * @see Packet
-     * @see GenericFutureListener
+     * @see IPacket
      */
     void onReceivePacket(PacketEvent event);
 
@@ -112,15 +106,15 @@ public interface IGameEventListener {
      * and before and after the player jumps.
      *
      * @param event The event
-     * @see Entity#moveRelative(float, float, float, float)
+     * @see Entity#moveRelative(float, Vector3d)
      */
     void onPlayerRotationMove(RotationMoveEvent event);
 
     /**
-     * Called whenever the sprint keybind state is checked in {@link EntityPlayerSP#onLivingUpdate}
+     * Called whenever the sprint keybind state is checked in {@link ClientPlayerEntity#livingTick}
      *
      * @param event The event
-     * @see EntityPlayerSP#onLivingUpdate()
+     * @see ClientPlayerEntity#livingTick()
      */
     void onPlayerSprintState(SprintStateEvent event);
 
@@ -132,9 +126,9 @@ public interface IGameEventListener {
     void onBlockInteract(BlockInteractEvent event);
 
     /**
-     * Called when the local player dies, as indicated by the creation of the {@link GuiGameOver} screen.
+     * Called when the local player dies, as indicated by the creation of the {@link DeathScreen} screen.
      *
-     * @see GuiGameOver
+     * @see DeathScreen
      */
     void onPlayerDeath();
 

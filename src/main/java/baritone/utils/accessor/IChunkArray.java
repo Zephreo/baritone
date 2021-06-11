@@ -17,16 +17,18 @@
 
 package baritone.utils.accessor;
 
-import baritone.cache.WorldProvider;
+import net.minecraft.world.chunk.Chunk;
 
-import java.io.File;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
-/**
- * @author Brady
- * @see WorldProvider
- * @since 8/4/2018
- */
-public interface IAnvilChunkLoader {
+public interface IChunkArray {
+    void copyFrom(IChunkArray other);
 
-    File getChunkSaveLocation();
+    AtomicReferenceArray<Chunk> getChunks();
+
+    int centerX();
+
+    int centerZ();
+
+    int viewDistance();
 }

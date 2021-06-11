@@ -31,13 +31,10 @@ import baritone.pathing.movement.MovementHelper;
 import baritone.utils.BaritoneProcessHelper;
 import baritone.utils.BlockStateInterface;
 import baritone.utils.NotificationHelper;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockAir;
-import net.minecraft.block.BlockFalling;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.*;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.init.Blocks;
+import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 
@@ -92,7 +89,7 @@ public final class MineProcess extends BaritoneProcessHelper implements IMinePro
                 if (Baritone.settings().desktopNotifications.value && Baritone.settings().notificationOnMineFail.value) {
                     NotificationHelper.notify("Unable to find any path to " + filter + ", blacklisting presumably unreachable closest instance...", true);
                 }
-                knownOreLocations.stream().min(Comparator.comparingDouble(ctx.player()::getDistanceSq)).ifPresent(blacklist::add);
+                knownOreLocations.stream().min(Comparator.comparingDouble(ctx.playerFeet()::distanceSq)).ifPresent(blacklist::add);
                 knownOreLocations.removeIf(blacklist::contains);
             } else {
                 logDirect("Unable to find any path to " + filter + ", canceling mine");
@@ -121,12 +118,12 @@ public final class MineProcess extends BaritoneProcessHelper implements IMinePro
         Optional<BlockPos> shaft = curr.stream()
                 .filter(pos -> pos.getX() == ctx.playerFeet().getX() && pos.getZ() == ctx.playerFeet().getZ())
                 .filter(pos -> pos.getY() >= ctx.playerFeet().getY())
-                .filter(pos -> !(BlockStateInterface.get(ctx, pos).getBlock() instanceof BlockAir)) // after breaking a block, it takes mineGoalUpdateInterval ticks for it to actually update this list =(
-                .min(Comparator.comparingDouble(ctx.player()::getDistanceSq));
+                .filter(pos -> !(BlockStateInterface.get(ctx, pos).getBlock() instanceof AirBlock)) // after breaking a block, it takes mineGoalUpdateInterval ticks for it to actually update this list =(
+                .min(Comparator.comparingDouble(ctx.playerFeet()::distanceSq));
         baritone.getInputOverrideHandler().clearAllKeys();
-        if (shaft.isPresent() && ctx.player().onGround) {
+        if (shaft.isPresent() && ctx.player().isOnGround()) {
             BlockPos pos = shaft.get();
-            IBlockState state = baritone.bsi.get0(pos);
+            BlockState state = baritone.bsi.get0(pos);
             if (!MovementHelper.avoidBreaking(baritone.bsi, pos.getX(), pos.getY(), pos.getZ(), state)) {
                 Optional<Rotation> rot = RotationUtils.reachable(ctx, pos);
                 if (rot.isPresent() && isSafeToCancel) {
@@ -148,6 +145,7 @@ public final class MineProcess extends BaritoneProcessHelper implements IMinePro
         }
         return command;
     }
+
 
     private void updateLoucaSystem() {
         Map<BlockPos, Long> copy = new HashMap<>(anticipatedDrops);
@@ -246,15 +244,15 @@ public final class MineProcess extends BaritoneProcessHelper implements IMinePro
         if (locs.contains(pos)) {
             return true;
         }
-        IBlockState state = context.bsi.get0(pos);
-        if (Baritone.settings().internalMiningAirException.value && state.getBlock() instanceof BlockAir) {
+        BlockState state = context.bsi.get0(pos);
+        if (Baritone.settings().internalMiningAirException.value && state.getBlock() instanceof AirBlock) {
             return true;
         }
         return filter.has(state) && plausibleToBreak(context, pos);
     }
 
     private Goal coalesce(BlockPos loc, List<BlockPos> locs, CalculationContext context) {
-        boolean assumeVerticalShaftMine = !(baritone.bsi.get0(loc.up()).getBlock() instanceof BlockFalling);
+        boolean assumeVerticalShaftMine = !(baritone.bsi.get0(loc.up()).getBlock() instanceof FallingBlock);
         if (!Baritone.settings().forceInternalMining.value) {
             if (assumeVerticalShaftMine) {
                 // we can get directly below the block
@@ -320,11 +318,11 @@ public final class MineProcess extends BaritoneProcessHelper implements IMinePro
             return Collections.emptyList();
         }
         List<BlockPos> ret = new ArrayList<>();
-        for (Entity entity : ctx.world().loadedEntityList) {
-            if (entity instanceof EntityItem) {
-                EntityItem ei = (EntityItem) entity;
+        for (Entity entity : ((ClientWorld) ctx.world()).getAllEntities()) {
+            if (entity instanceof ItemEntity) {
+                ItemEntity ei = (ItemEntity) entity;
                 if (filter.has(ei.getItem())) {
-                    ret.add(new BlockPos(entity));
+                    ret.add(entity.getPosition());
                 }
             }
         }
@@ -425,7 +423,7 @@ public final class MineProcess extends BaritoneProcessHelper implements IMinePro
 
                 .filter(pos -> !blacklist.contains(pos))
 
-                .sorted(Comparator.comparingDouble(ctx.getBaritone().getPlayerContext().player()::getDistanceSq))
+                .sorted(Comparator.comparingDouble(ctx.getBaritone().getPlayerContext().player().getPosition()::distanceSq))
                 .collect(Collectors.toList());
 
         if (locs.size() > max) {

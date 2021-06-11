@@ -18,7 +18,7 @@
 package baritone.api.utils;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;
 
 import java.util.Arrays;
@@ -61,7 +61,7 @@ public class BlockOptionalMetaLookup {
         return false;
     }
 
-    public boolean has(IBlockState state) {
+    public boolean has(BlockState state) {
         for (BlockOptionalMeta bom : boms) {
             if (bom.matches(state)) {
                 return true;

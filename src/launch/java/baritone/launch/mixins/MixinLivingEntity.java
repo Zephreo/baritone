@@ -20,9 +20,10 @@ package baritone.launch.mixins;
 import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.event.events.RotationMoveEvent;
-import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,23 +31,22 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import static org.spongepowered.asm.lib.Opcodes.GETFIELD;
+import static org.objectweb.asm.Opcodes.GETFIELD;
 
 /**
  * @author Brady
  * @since 9/10/2018
  */
-@Mixin(EntityLivingBase.class)
-public abstract class MixinEntityLivingBase extends Entity {
+@Mixin(LivingEntity.class)
+public abstract class MixinLivingEntity extends Entity {
 
     /**
      * Event called to override the movement direction when jumping
      */
     private RotationMoveEvent jumpRotationEvent;
 
-    public MixinEntityLivingBase(World worldIn, RotationMoveEvent jumpRotationEvent) {
-        super(worldIn);
-        this.jumpRotationEvent = jumpRotationEvent;
+    public MixinLivingEntity(EntityType<?> entityTypeIn, World worldIn) {
+        super(entityTypeIn, worldIn);
     }
 
     @Inject(
@@ -55,8 +55,8 @@ public abstract class MixinEntityLivingBase extends Entity {
     )
     private void preMoveRelative(CallbackInfo ci) {
         // noinspection ConstantConditions
-        if (EntityPlayerSP.class.isInstance(this)) {
-            IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((EntityPlayerSP) (Object) this);
+        if (ClientPlayerEntity.class.isInstance(this)) {
+            IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((ClientPlayerEntity) (Object) this);
             if (baritone != null) {
                 this.jumpRotationEvent = new RotationMoveEvent(RotationMoveEvent.Type.JUMP, this.rotationYaw);
                 baritone.getGameEventHandler().onPlayerRotationMove(this.jumpRotationEvent);
@@ -69,34 +69,15 @@ public abstract class MixinEntityLivingBase extends Entity {
             at = @At(
                     value = "FIELD",
                     opcode = GETFIELD,
-                    target = "net/minecraft/entity/EntityLivingBase.rotationYaw:F"
+                    target = "net/minecraft/entity/LivingEntity.rotationYaw:F"
             )
     )
-    private float overrideYaw(EntityLivingBase self) {
-        if (self instanceof EntityPlayerSP && BaritoneAPI.getProvider().getBaritoneForPlayer((EntityPlayerSP) (Object) this) != null) {
+    private float overrideYaw(LivingEntity self) {
+        if (self instanceof ClientPlayerEntity && BaritoneAPI.getProvider().getBaritoneForPlayer((ClientPlayerEntity) (Object) this) != null) {
             return this.jumpRotationEvent.getYaw();
         }
         return self.rotationYaw;
     }
 
-    @Redirect(
-            method = "travel",
-            at = @At(
-                    value = "INVOKE",
-                    target = "net/minecraft/entity/EntityLivingBase.moveRelative(FFFF)V"
-            )
-    )
-    private void travel(EntityLivingBase self, float strafe, float up, float forward, float friction) {
-        // noinspection ConstantConditions
-        if (!EntityPlayerSP.class.isInstance(this) || BaritoneAPI.getProvider().getBaritoneForPlayer((EntityPlayerSP) (Object) this) == null) {
-            moveRelative(strafe, up, forward, friction);
-            return;
-        }
-        RotationMoveEvent motionUpdateRotationEvent = new RotationMoveEvent(RotationMoveEvent.Type.MOTION_UPDATE, this.rotationYaw);
-        BaritoneAPI.getProvider().getBaritoneForPlayer((EntityPlayerSP) (Object) this).getGameEventHandler().onPlayerRotationMove(motionUpdateRotationEvent);
-        float originalYaw = this.rotationYaw;
-        this.rotationYaw = motionUpdateRotationEvent.getYaw();
-        this.moveRelative(strafe, up, forward, friction);
-        this.rotationYaw = originalYaw;
-    }
+
 }

@@ -15,15 +15,19 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package baritone.gradle.util;
+package baritone.launch.mixins;
 
-/**
- * All credits go to AsmLibGradle and its contributors.
- *
- * @see <a href="https://github.com/pozzed/AsmLibGradle/blob/8f917dbc3939eab7a3d9daf54d9d285fdf34f4b2/src/main/java/net/futureclient/asmlib/forgegradle/MappingType.java">Original Source</a>
- */
-public enum MappingType {
-    SEARGE,
-    NOTCH,
-    CUSTOM // forgegradle
+import baritone.utils.accessor.IGuiScreen;
+import net.minecraft.client.gui.screen.Screen;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Invoker;
+
+import java.net.URI;
+
+@Mixin(Screen.class)
+public abstract class MixinScreen implements IGuiScreen {
+
+    @Override
+    @Invoker("openLink")
+    public abstract void openLinkInvoker(URI url);
 }

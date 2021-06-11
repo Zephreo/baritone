@@ -17,7 +17,7 @@
 
 package baritone.api.schematic;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 
 import java.util.List;
 
@@ -30,15 +30,15 @@ public abstract class MaskSchematic extends AbstractSchematic {
         this.schematic = schematic;
     }
 
-    protected abstract boolean partOfMask(int x, int y, int z, IBlockState currentState);
+    protected abstract boolean partOfMask(int x, int y, int z, BlockState currentState);
 
     @Override
-    public boolean inSchematic(int x, int y, int z, IBlockState currentState) {
+    public boolean inSchematic(int x, int y, int z, BlockState currentState) {
         return schematic.inSchematic(x, y, z, currentState) && partOfMask(x, y, z, currentState);
     }
 
     @Override
-    public IBlockState desiredState(int x, int y, int z, IBlockState current, List<IBlockState> approxPlaceable) {
+    public BlockState desiredState(int x, int y, int z, BlockState current, List<BlockState> approxPlaceable) {
         return schematic.desiredState(x, y, z, current, approxPlaceable);
     }
 }

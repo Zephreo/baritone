@@ -28,9 +28,6 @@ public final class LookBehavior extends Behavior implements ILookBehavior {
 
     /**
      * Target's values are as follows:
-     * <p>
-     * getFirst() -> yaw
-     * getSecond() -> pitch
      */
     private Rotation target;
 
@@ -53,6 +50,13 @@ public final class LookBehavior extends Behavior implements ILookBehavior {
     @Override
     public void updateTarget(Rotation target, boolean force) {
         this.target = target;
+        if (!force) {
+            double rand = Math.random() - 0.5;
+            if (Math.abs(rand) < 0.1) {
+                rand *= 4;
+            }
+            this.target = new Rotation(this.target.getYaw() + (float) (rand * Baritone.settings().randomLooking113.value), this.target.getPitch());
+        }
         this.force = force || !Baritone.settings().freeLook.value;
     }
 

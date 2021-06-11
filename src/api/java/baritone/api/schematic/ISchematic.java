@@ -17,8 +17,8 @@
 
 package baritone.api.schematic;
 
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.block.BlockState;
+import net.minecraft.util.Direction;
 
 import java.util.List;
 
@@ -44,11 +44,11 @@ public interface ISchematic {
      * @param currentState The current state of that block in the world, or null
      * @return Whether or not the specified position is within the bounds of this schematic
      */
-    default boolean inSchematic(int x, int y, int z, IBlockState currentState) {
+    default boolean inSchematic(int x, int y, int z, BlockState currentState) {
         return x >= 0 && x < widthX() && y >= 0 && y < heightY() && z >= 0 && z < lengthZ();
     }
 
-    default int size(EnumFacing.Axis axis) {
+    default int size(Direction.Axis axis) {
         switch (axis) {
             case X:
                 return widthX();
@@ -71,7 +71,7 @@ public interface ISchematic {
      * @param approxPlaceable The list of blockstates estimated to be placeable
      * @return The desired block state at the specified position
      */
-    IBlockState desiredState(int x, int y, int z, IBlockState current, List<IBlockState> approxPlaceable);
+    BlockState desiredState(int x, int y, int z, BlockState current, List<BlockState> approxPlaceable);
 
     /**
      * Resets possible caches to avoid wrong behavior when moving the schematic around

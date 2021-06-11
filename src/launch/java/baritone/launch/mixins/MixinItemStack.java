@@ -35,14 +35,14 @@ public abstract class MixinItemStack implements IItemStack {
     @Final
     private Item item;
 
-    @Shadow
-    private int itemDamage;
-
     @Unique
     private int baritoneHash;
 
+    @Shadow
+    protected abstract int getDamage();
+
     private void recalculateHash() {
-        baritoneHash = item == null ? -1 : item.hashCode() + itemDamage;
+        baritoneHash = item == null ? -1 : item.hashCode() + getDamage();
     }
 
     @Inject(
@@ -54,7 +54,7 @@ public abstract class MixinItemStack implements IItemStack {
     }
 
     @Inject(
-            method = "setItemDamage",
+            method = "setDamage",
             at = @At("TAIL")
     )
     private void onItemDamageSet(CallbackInfo ci) {

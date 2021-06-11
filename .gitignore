@@ -5,6 +5,7 @@ run/
 autotest/
 dist/
 /bin/
+volderyarn/
 
 # Gradle
 build/
@@ -17,6 +18,8 @@ classes/
 .project
 .settings/
 baritone_Client.launch
+
+/out
 
 # IntelliJ Files
 .idea/

@@ -32,7 +32,6 @@ import net.minecraft.util.math.BlockPos;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Follow an entity
@@ -58,10 +57,10 @@ public final class FollowProcess extends BaritoneProcessHelper implements IFollo
     private Goal towards(Entity following) {
         BlockPos pos;
         if (Baritone.settings().followOffsetDistance.value == 0) {
-            pos = new BlockPos(following);
+            pos = following.getPosition();
         } else {
-            GoalXZ g = GoalXZ.fromDirection(following.getPositionVector(), Baritone.settings().followOffsetDirection.value, Baritone.settings().followOffsetDistance.value);
-            pos = new BlockPos(g.getX(), following.posY, g.getZ());
+            GoalXZ g = GoalXZ.fromDirection(following.getPositionVec(), Baritone.settings().followOffsetDirection.value, Baritone.settings().followOffsetDistance.value);
+            pos = new BlockPos(g.getX(), following.getPositionVec().y, g.getZ());
         }
         return new GoalNear(pos, Baritone.settings().followRadius.value);
     }
@@ -71,18 +70,17 @@ public final class FollowProcess extends BaritoneProcessHelper implements IFollo
         if (entity == null) {
             return false;
         }
-        if (entity.isDead) {
+        if (!entity.isAlive()) {
             return false;
         }
         if (entity.equals(ctx.player())) {
             return false;
         }
-        return ctx.world().loadedEntityList.contains(entity);
+        return ctx.entitiesStream().anyMatch(entity::equals);
     }
 
     private void scanWorld() {
-        cache = Stream.of(ctx.world().loadedEntityList, ctx.world().playerEntities)
-                .flatMap(List::stream)
+        cache = ctx.entitiesStream()
                 .filter(this::followable)
                 .filter(this.filter)
                 .distinct()

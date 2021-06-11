@@ -22,9 +22,11 @@ import baritone.utils.pathing.PathingBlockType;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -38,23 +40,13 @@ import java.util.Map;
 public final class CachedChunk {
 
     public static final ImmutableSet<Block> BLOCKS_TO_KEEP_TRACK_OF = ImmutableSet.of(
-            Blocks.DIAMOND_BLOCK,
-            //Blocks.COAL_ORE,
-            Blocks.COAL_BLOCK,
-            //Blocks.IRON_ORE,
-            Blocks.IRON_BLOCK,
-            //Blocks.GOLD_ORE,
-            Blocks.GOLD_BLOCK,
-            Blocks.EMERALD_ORE,
-            Blocks.EMERALD_BLOCK,
-
             Blocks.ENDER_CHEST,
             Blocks.FURNACE,
             Blocks.CHEST,
             Blocks.TRAPPED_CHEST,
             Blocks.END_PORTAL,
             Blocks.END_PORTAL_FRAME,
-            Blocks.MOB_SPAWNER,
+            Blocks.SPAWNER,
             Blocks.BARRIER,
             Blocks.OBSERVER,
             Blocks.WHITE_SHULKER_BOX,
@@ -65,7 +57,7 @@ public final class CachedChunk {
             Blocks.LIME_SHULKER_BOX,
             Blocks.PINK_SHULKER_BOX,
             Blocks.GRAY_SHULKER_BOX,
-            Blocks.SILVER_SHULKER_BOX,
+            Blocks.LIGHT_GRAY_SHULKER_BOX,
             Blocks.CYAN_SHULKER_BOX,
             Blocks.PURPLE_SHULKER_BOX,
             Blocks.BLUE_SHULKER_BOX,
@@ -73,24 +65,51 @@ public final class CachedChunk {
             Blocks.GREEN_SHULKER_BOX,
             Blocks.RED_SHULKER_BOX,
             Blocks.BLACK_SHULKER_BOX,
-            Blocks.PORTAL,
+            Blocks.NETHER_PORTAL,
             Blocks.HOPPER,
             Blocks.BEACON,
             Blocks.BREWING_STAND,
-            Blocks.SKULL,
+
+// TODO: Maybe add a predicate for blocks to keep track of?
+// This should really not need to happen
+            Blocks.CREEPER_HEAD,
+            Blocks.CREEPER_WALL_HEAD,
+            Blocks.DRAGON_HEAD,
+            Blocks.DRAGON_WALL_HEAD,
+            Blocks.PLAYER_HEAD,
+            Blocks.PLAYER_WALL_HEAD,
+            Blocks.ZOMBIE_HEAD,
+            Blocks.ZOMBIE_WALL_HEAD,
+            Blocks.SKELETON_SKULL,
+            Blocks.SKELETON_WALL_SKULL,
+            Blocks.WITHER_SKELETON_SKULL,
+            Blocks.WITHER_SKELETON_WALL_SKULL,
             Blocks.ENCHANTING_TABLE,
             Blocks.ANVIL,
-            Blocks.LIT_FURNACE,
-            Blocks.BED,
+            Blocks.WHITE_BED,
+            Blocks.ORANGE_BED,
+            Blocks.MAGENTA_BED,
+            Blocks.LIGHT_BLUE_BED,
+            Blocks.YELLOW_BED,
+            Blocks.LIME_BED,
+            Blocks.PINK_BED,
+            Blocks.GRAY_BED,
+            Blocks.LIGHT_GRAY_BED,
+            Blocks.CYAN_BED,
+            Blocks.PURPLE_BED,
+            Blocks.BLUE_BED,
+            Blocks.BROWN_BED,
+            Blocks.GREEN_BED,
+            Blocks.RED_BED,
+            Blocks.BLACK_BED,
             Blocks.DRAGON_EGG,
             Blocks.JUKEBOX,
             Blocks.END_GATEWAY,
-            Blocks.WEB,
+            Blocks.COBWEB,
             Blocks.NETHER_WART,
             Blocks.LADDER,
             Blocks.VINE
     );
-
 
     /**
      * The size of the chunk data in bits. Equal to 16 KiB.
@@ -126,7 +145,7 @@ public final class CachedChunk {
     /**
      * The block names of each surface level block for generating an overview
      */
-    private final IBlockState[] overview;
+    private final BlockState[] overview;
 
     private final int[] heightMap;
 
@@ -134,7 +153,7 @@ public final class CachedChunk {
 
     public final long cacheTimestamp;
 
-    CachedChunk(int x, int z, BitSet data, IBlockState[] overview, Map<String, List<BlockPos>> specialBlockLocations, long cacheTimestamp) {
+    CachedChunk(int x, int z, BitSet data, BlockState[] overview, Map<String, List<BlockPos>> specialBlockLocations, long cacheTimestamp) {
         validateSize(data);
 
         this.x = x;
@@ -161,7 +180,7 @@ public final class CachedChunk {
         }
     }
 
-    public final IBlockState getBlock(int x, int y, int z, int dimension) {
+    public final BlockState getBlock(int x, int y, int z, RegistryKey<World> dimension) {
         int index = getPositionIndex(x, y, z);
         PathingBlockType type = getType(index);
         int internalPos = z << 4 | x;
@@ -170,8 +189,8 @@ public final class CachedChunk {
 
             // we have this exact block, it's a surface block
             /*System.out.println("Saying that " + x + "," + y + "," + z + " is " + state);
-            if (!Minecraft.getMinecraft().world.getBlockState(new BlockPos(x + this.x * 16, y, z + this.z * 16)).getBlock().equals(state.getBlock())) {
-                throw new IllegalStateException("failed " + Minecraft.getMinecraft().world.getBlockState(new BlockPos(x + this.x * 16, y, z + this.z * 16)).getBlock() + " " + state.getBlock() + " " + (x + this.x * 16) + " " + y + " " + (z + this.z * 16));
+            if (!Minecraft.getInstance().world.getBlockState(new BlockPos(x + this.x * 16, y, z + this.z * 16)).getBlock().equals(state.getBlock())) {
+                throw new IllegalStateException("failed " + Minecraft.getInstance().world.getBlockState(new BlockPos(x + this.x * 16, y, z + this.z * 16)).getBlock() + " " + state.getBlock() + " " + (x + this.x * 16) + " " + y + " " + (z + this.z * 16));
             }*/
             return overview[internalPos];
         }
@@ -183,11 +202,11 @@ public final class CachedChunk {
         }
 
         if (type == PathingBlockType.SOLID) {
-            if (y == 127 && dimension == -1) {
+            if (y == 127 && dimension == World.THE_NETHER) {
                 // nether roof is always unbreakable
                 return Blocks.BEDROCK.getDefaultState();
             }
-            if (y < 5 && dimension == 0) {
+            if (y < 5 && dimension == World.OVERWORLD) {
                 // solid blocks below 5 are commonly bedrock
                 // however, returning bedrock always would be a little yikes
                 // discourage paths that include breaking blocks below 5 a little more heavily just so that it takes paths breaking what's known to be stone (at 5 or above) instead of what could maybe be bedrock (below 5)
@@ -217,7 +236,7 @@ public final class CachedChunk {
         }
     }
 
-    public final IBlockState[] getOverview() {
+    public final BlockState[] getOverview() {
         return overview;
     }
 

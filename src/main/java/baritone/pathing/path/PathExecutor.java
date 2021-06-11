@@ -32,11 +32,10 @@ import baritone.pathing.movement.Movement;
 import baritone.pathing.movement.MovementHelper;
 import baritone.pathing.movement.movements.*;
 import baritone.utils.BlockStateInterface;
-import net.minecraft.block.BlockLiquid;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.vector.Vector3i;
 
 import java.util.*;
 
@@ -130,7 +129,7 @@ public class PathExecutor implements IPathExecutor, Helper {
         Tuple<Double, BlockPos> status = closestPathPos(path);
         if (possiblyOffPath(status, MAX_DIST_FROM_PATH)) {
             ticksAway++;
-            System.out.println("FAR AWAY FROM PATH FOR " + ticksAway + " TICKS. Current distance: " + status.getFirst() + ". Threshold: " + MAX_DIST_FROM_PATH);
+            System.out.println("FAR AWAY FROM PATH FOR " + ticksAway + " TICKS. Current distance: " + status.getA() + ". Threshold: " + MAX_DIST_FROM_PATH);
             if (ticksAway > MAX_TICKS_AWAY) {
                 logDebug("Too far away from path for too long, cancelling path");
                 cancel();
@@ -274,7 +273,7 @@ public class PathExecutor implements IPathExecutor, Helper {
         if (!current.isPresent()) {
             return false;
         }
-        if (!ctx.player().onGround) {
+        if (!ctx.player().isOnGround()) {
             return false;
         }
         if (!MovementHelper.canWalkOn(ctx, ctx.playerFeet().down())) {
@@ -303,7 +302,7 @@ public class PathExecutor implements IPathExecutor, Helper {
     }
 
     private boolean possiblyOffPath(Tuple<Double, BlockPos> status, double leniency) {
-        double distanceFromPath = status.getFirst();
+        double distanceFromPath = status.getA();
         if (distanceFromPath > leniency) {
             // when we're midair in the middle of a fall, we're very far from both the beginning and the end, but we aren't actually off path
             if (path.movements().get(pathPosition) instanceof MovementFall) {
@@ -323,12 +322,12 @@ public class PathExecutor implements IPathExecutor, Helper {
      * @return Whether or not it was possible to snap to the current player feet
      */
     public boolean snipsnapifpossible() {
-        if (!ctx.player().onGround && !(ctx.world().getBlockState(ctx.playerFeet()).getBlock() instanceof BlockLiquid)) {
+        if (!ctx.player().isOnGround() && ctx.world().getFluidState(ctx.playerFeet()).isEmpty()) {
             // if we're falling in the air, and not in water, don't splice
             return false;
         } else {
             // we are either onGround or in liquid
-            if (ctx.player().motionY < -0.1) {
+            if (ctx.player().getMotion().y < -0.1) {
                 // if we are strictly moving downwards (not stationary)
                 // we could be falling through water, which could be unsafe to splice
                 return false; // so don't
@@ -414,7 +413,7 @@ public class PathExecutor implements IPathExecutor, Helper {
                 // playerFeet adds 0.1251 to account for soul sand
                 // farmland is 0.9375
                 // 0.07 is to account for farmland
-                if (ctx.player().posY >= center.getY() - 0.07) {
+                if (ctx.player().getPositionVec().y >= center.getY() - 0.07) {
                     behavior.baritone.getInputOverrideHandler().setInputForceState(Input.JUMP, false);
                     return true;
                 }
@@ -424,9 +423,9 @@ public class PathExecutor implements IPathExecutor, Helper {
             }
         }
         if (current instanceof MovementFall) {
-            Tuple<Vec3d, BlockPos> data = overrideFall((MovementFall) current);
+            Tuple<Vector3d, BlockPos> data = overrideFall((MovementFall) current);
             if (data != null) {
-                BetterBlockPos fallDest = new BetterBlockPos(data.getSecond());
+                BetterBlockPos fallDest = new BetterBlockPos(data.getB());
                 if (!path.positions().contains(fallDest)) {
                     throw new IllegalStateException();
                 }
@@ -437,7 +436,7 @@ public class PathExecutor implements IPathExecutor, Helper {
                     return true;
                 }
                 clearKeys();
-                behavior.baritone.getLookBehavior().updateTarget(RotationUtils.calcRotationFromVec3d(ctx.playerHead(), data.getFirst(), ctx.playerRotations()), false);
+                behavior.baritone.getLookBehavior().updateTarget(RotationUtils.calcRotationFromVec3d(ctx.playerHead(), data.getA(), ctx.playerRotations()), false);
                 behavior.baritone.getInputOverrideHandler().setInputForceState(Input.MOVE_FORWARD, true);
                 return true;
             }
@@ -445,15 +444,15 @@ public class PathExecutor implements IPathExecutor, Helper {
         return false;
     }
 
-    private Tuple<Vec3d, BlockPos> overrideFall(MovementFall movement) {
-        Vec3i dir = movement.getDirection();
+    private Tuple<Vector3d, BlockPos> overrideFall(MovementFall movement) {
+        Vector3i dir = movement.getDirection();
         if (dir.getY() < -3) {
             return null;
         }
         if (!movement.toBreakCached.isEmpty()) {
             return null; // it's breaking
         }
-        Vec3i flatDir = new Vec3i(dir.getX(), 0, dir.getZ());
+        Vector3i flatDir = new Vector3i(dir.getX(), 0, dir.getZ());
         int i;
         outer:
         for (i = pathPosition + 1; i < path.length() - 1 && i < pathPosition + 3; i++) {
@@ -480,12 +479,12 @@ public class PathExecutor implements IPathExecutor, Helper {
         }
         double len = i - pathPosition - 0.4;
         return new Tuple<>(
-                new Vec3d(flatDir.getX() * len + movement.getDest().x + 0.5, movement.getDest().y, flatDir.getZ() * len + movement.getDest().z + 0.5),
+                new Vector3d(flatDir.getX() * len + movement.getDest().x + 0.5, movement.getDest().y, flatDir.getZ() * len + movement.getDest().z + 0.5),
                 movement.getDest().add(flatDir.getX() * (i - pathPosition), 0, flatDir.getZ() * (i - pathPosition)));
     }
 
     private static boolean skipNow(IPlayerContext ctx, IMovement current) {
-        double offTarget = Math.abs(current.getDirection().getX() * (current.getSrc().z + 0.5D - ctx.player().posZ)) + Math.abs(current.getDirection().getZ() * (current.getSrc().x + 0.5D - ctx.player().posX));
+        double offTarget = Math.abs(current.getDirection().getX() * (current.getSrc().z + 0.5D - ctx.player().getPositionVec().z)) + Math.abs(current.getDirection().getZ() * (current.getSrc().x + 0.5D - ctx.player().getPositionVec().x));
         if (offTarget > 0.1) {
             return false;
         }
@@ -495,7 +494,7 @@ public class PathExecutor implements IPathExecutor, Helper {
             return true;
         }
         // wait 0.3
-        double flatDist = Math.abs(current.getDirection().getX() * (headBonk.getX() + 0.5D - ctx.player().posX)) + Math.abs(current.getDirection().getZ() * (headBonk.getZ() + 0.5 - ctx.player().posZ));
+        double flatDist = Math.abs(current.getDirection().getX() * (headBonk.getX() + 0.5D - ctx.player().getPositionVec().x)) + Math.abs(current.getDirection().getZ() * (headBonk.getZ() + 0.5 - ctx.player().getPositionVec().z));
         return flatDist > 0.8;
     }
 
@@ -529,10 +528,10 @@ public class PathExecutor implements IPathExecutor, Helper {
                 }
             }
         }
-        if (MovementHelper.avoidWalkingInto(ctx.world().getBlockState(current.getSrc().up(3)).getBlock())) {
+        if (MovementHelper.avoidWalkingInto(ctx.world().getBlockState(current.getSrc().up(3)))) {
             return false;
         }
-        return !MovementHelper.avoidWalkingInto(ctx.world().getBlockState(next.getDest().up(2)).getBlock()); // codacy smh my head
+        return !MovementHelper.avoidWalkingInto(ctx.world().getBlockState(next.getDest().up(2))); // codacy smh my head
     }
 
     private static boolean canSprintFromDescendInto(IPlayerContext ctx, IMovement current, IMovement next) {
