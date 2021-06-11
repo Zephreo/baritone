@@ -979,18 +979,6 @@ public class MovementParkourAdv extends Movement {
     }
 
     /**
-     * Calculates the velocity the player would have a specified amount of ticks after a jump
-     * Jump at tick 1
-     *
-     * @param ticksFromStart The amount of ticks since jumping
-     * @param ctx            Player context (for jump boost)
-     * @return The y velocity calculated (+ is up)
-     */
-    private static double calcFallVelocity(int ticksFromStart, boolean jump, IPlayerContext ctx) {
-        return calcFallVelocity(ticksFromStart, jump, getPotionEffectAmplifier(ctx, MobEffects.JUMP_BOOST));
-    }
-
-    /**
      * Calculates the y position of the player relative to the jump y position
      * Jump at tick 1
      *
@@ -1005,20 +993,6 @@ public class MovementParkourAdv extends Movement {
             yPos += calcFallVelocity(i, jump, jumpBoostLvl);
         }
         return yPos;
-    }
-
-    /**
-     * Calculates the y position of the player relative to the jump y position
-     * Jump at tick 1
-     *
-     * @param ticksFromStart The amount of ticks that have passed since jumping
-     * @param jump           If the jump is a jump and not a fall
-     * @param ctx            The player context (for jump boost)
-     * @return The relative y position of the player
-     */
-    private static double calcFallPosition(int ticksFromStart, boolean jump, IPlayerContext ctx) {
-        return calcFallPosition(ticksFromStart, jump, getPotionEffectAmplifier(ctx, MobEffects.JUMP_BOOST));
-
     }
 
     /**
@@ -1047,18 +1021,6 @@ public class MovementParkourAdv extends Movement {
             newHeight += calcFallVelocity(ticks, jump, jumpBoostLvl);
         }
         return ticks - 1;
-    }
-
-    /**
-     * Calculates the time in ticks spent in the air after jumping
-     *
-     * @param height The height we are landing at (relative to the jump height)
-     * @param jump   If the jump is a jump and not a fall
-     * @param ctx    The player context (for jump boost)
-     * @return The jump time in ticks
-     */
-    private static int calcJumpTime(double height, boolean jump, IPlayerContext ctx) {
-        return calcJumpTime(height, jump, getPotionEffectAmplifier(ctx, MobEffects.JUMP_BOOST));
     }
     
     private static final double MAX_JUMP_HEIGHT_NORMAL = 1.251;
@@ -1128,7 +1090,7 @@ public class MovementParkourAdv extends Movement {
         if (Math.abs(angleDiff) < 20) {
             return Input.MOVE_FORWARD;
         }
-        return null; // Not possible
+        return null; // Unreachable
     }
 
     /**
