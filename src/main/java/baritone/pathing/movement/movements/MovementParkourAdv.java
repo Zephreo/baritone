@@ -998,7 +998,7 @@ public class MovementParkourAdv extends Movement {
     /**
      * Calculates the time in ticks spent in the air after jumping
      *
-     * @param ascendAmount` The y difference of the landing position (can be negative)
+     * @param ascendAmount  The y difference of the landing position (can be negative)
      * @param jump          If the jump is a jump and not a fall
      * @param jumpBoostLvl  The level of jump boost active on the player
      * @return The jump time in ticks
@@ -1021,6 +1021,18 @@ public class MovementParkourAdv extends Movement {
             newHeight += calcFallVelocity(ticks, jump, jumpBoostLvl);
         }
         return ticks - 1;
+    }
+    
+    /**
+     * Calculates the time in ticks spent in the air after jumping
+     *
+     * @param ascendAmount  The y difference of the landing position (can be negative)
+     * @param jump          If the jump is a jump and not a fall
+     * @param ctx			PlayerContext to get jump boost level from
+     * @return The jump time in ticks
+     */
+    private static int calcJumpTime(double ascendAmount, boolean jump, IPlayerContext ctx) {
+    	return calcJumpTime(ascendAmount, jump, getPotionEffectAmplifier(ctx, MobEffects.JUMP_BOOST));
     }
     
     private static final double MAX_JUMP_HEIGHT_NORMAL = 1.251;
