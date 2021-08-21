@@ -390,7 +390,7 @@ public class MovementParkourAdv extends Movement {
 
     private static final double PLAYER_HEIGHT = 1.8;
     
-    // true if blocks are in the way
+    // returns a valid direction we can jump into the destination (i.e. the direction we want to be facing at the end of the jump)
     private static EnumFacing getValidEntryPoint(CalculationContext context, int srcX, int srcY, int srcZ, int jumpX, int jumpY, int jumpZ, EnumFacing jumpDirection, JumpType type, boolean sprint) {
         if (!MovementHelper.fullyPassable(context, srcX + jumpX, srcY + jumpY, srcZ + jumpZ) || !MovementHelper.fullyPassable(context, srcX + jumpX, srcY + jumpY + 1, srcZ + jumpZ)) {
             return null; // Destination is blocked
@@ -446,19 +446,13 @@ public class MovementParkourAdv extends Movement {
                         if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
                             System.out.println("Blocks in the way, block = " + VecUtils.add(vec, srcX + jumpDirection.getXOffset(), srcY + j, srcZ + jumpDirection.getZOffset()) + " jump = " + new Vec3d(srcX, srcY, srcZ) + " -> " + new Vec3d(srcX + jumpX, srcY + jumpY, srcZ + jumpZ) + ", entryDir = " + entryDir + ", endPoint = " + endPoint + ", line = " + jumpLine);
                         }
-                        exitFlag = true;
+                        exitFlag = true; // Continue next entry direction
                         break;
                     }
                 }
-                if (exitFlag)
-                {
-                	break;
-                }
+                if (exitFlag) { break; }
             }
-            if (!exitFlag)
-            {
-            	return entryDir;
-            }
+            if (!exitFlag) { return entryDir; }
         }
         return null;
     }
@@ -765,7 +759,7 @@ public class MovementParkourAdv extends Movement {
             }
             distance += ascendAmount * ASCEND_DIST_PER_BLOCK;
         } else {
-            distance += -ascendAmount * DESCEND_DIST_PER_BLOCK; // ascendAmount is negative
+            distance += -ascendAmount * DESCEND_DIST_PER_BLOCK; // ascendAmount is negative (double negative)
         }
 
         return distance;
@@ -777,6 +771,7 @@ public class MovementParkourAdv extends Movement {
         return state.getStatus() != MovementStatus.RUNNING;
     }
  
+    // Here we check which directions we can exit the jump in, (i.e. Which direction we want to be facing at the end of the jump), this is a quick pre-calculation done before actual collision checking.
     private static EnumFacing[] entryPointsArray = new EnumFacing[2];
     private static EnumFacing[] getEntryPoints(CalculationContext context, int srcX, int srcY, int srcZ, int jumpX, int jumpY, int jumpZ, EnumFacing jumpDirection, EnumFacing destDirection, JumpType type) {
     	switch (type) {
@@ -785,37 +780,40 @@ public class MovementParkourAdv extends Movement {
     	}
     	double destDirAngle = -1;
     	IBlockState landingOn = context.bsi.get0(srcX + jumpX, srcY + jumpY - 1, srcZ + jumpZ);
-    	if (jumpDirection != destDirection && type != JumpType.EDGE_NEO) {
+    	if (jumpDirection != destDirection && type != JumpType.EDGE_NEO) { // don't double calc
     		// check destDirection
-    		if (MovementHelper.fullyPassable(context, srcX + jumpX - destDirection.getXOffset(), srcY + jumpY, srcZ + jumpZ - destDirection.getZOffset()) && MovementHelper.fullyPassable(context, srcX + jumpX - destDirection.getXOffset(), srcY + jumpY + 1, srcZ + jumpZ - destDirection.getZOffset())) {
-    			if (!MovementHelper.isBottomSlab(landingOn) || MovementHelper.fullyPassable(context, srcX + jumpX - destDirection.getXOffset(), srcY + jumpY - 1, srcZ + jumpZ - destDirection.getZOffset())) {
+    		if (MovementHelper.fullyPassable(context, srcX + jumpX - destDirection.getXOffset(), srcY + jumpY, srcZ + jumpZ - destDirection.getZOffset()) && // Checking the blocks immediately preceding the destination (first possible direction)
+    				MovementHelper.fullyPassable(context, srcX + jumpX - destDirection.getXOffset(), srcY + jumpY + 1, srcZ + jumpZ - destDirection.getZOffset())) { 
+    			if (!MovementHelper.isBottomSlab(landingOn) || MovementHelper.fullyPassable(context, srcX + jumpX - destDirection.getXOffset(), srcY + jumpY - 1, srcZ + jumpZ - destDirection.getZOffset())) { // Make sure if we are landing on a slab that the block below is also passable 
     				destDirAngle = Math.abs(getSignedAngle(destDirection.getXOffset(), destDirection.getZOffset(), jumpX - jumpDirection.getXOffset(), jumpZ - jumpDirection.getZOffset()));
             	}
     		}
     	}
-    	if (MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY, srcZ + jumpZ - jumpDirection.getZOffset()) && MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY + 1, srcZ + jumpZ - jumpDirection.getZOffset())) {
+    	if (MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY, srcZ + jumpZ - jumpDirection.getZOffset()) && // Checking the blocks immediately preceding the destination (second possible direction)
+    			MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY + 1, srcZ + jumpZ - jumpDirection.getZOffset())) {
     		if (!MovementHelper.isBottomSlab(landingOn) || MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY - 1, srcZ + jumpZ - jumpDirection.getZOffset())) {
     			double jumpDirAngle = Math.abs(getSignedAngle(jumpDirection.getXOffset(), jumpDirection.getZOffset(), jumpX - jumpDirection.getXOffset(), jumpZ - jumpDirection.getZOffset()));
-    			if (destDirAngle >= 0 && destDirAngle < jumpDirAngle) {
+    			if (destDirAngle >= 0 && destDirAngle < jumpDirAngle) { // Both directions are possible but destDir is slightly better
     				entryPointsArray[0] = destDirection;
     		    	entryPointsArray[1] = jumpDirection;
     				return entryPointsArray;
     			}
-    			entryPointsArray[0] = jumpDirection;
-		    	entryPointsArray[1] = destDirAngle >= 0 ? destDirection : null;
+    			entryPointsArray[0] = jumpDirection; // jumpDir is slightly better
+		    	entryPointsArray[1] = destDirAngle >= 0 ? destDirection : null; 
 				return entryPointsArray;
         	}
 		}
-    	if (destDirAngle != -1) {
+    	if (destDirAngle != -1) { // Only destDir is possible
     		entryPointsArray[0] = destDirection;
 	    	entryPointsArray[1] = null;
 			return entryPointsArray;
     	}
-    	entryPointsArray[0] = null;
+    	entryPointsArray[0] = null; // The destination is blocked in both directions
     	entryPointsArray[1] = null;
     	return entryPointsArray;
     }
 
+    // Calculate the approximate time in ticks required to complete the given jump
     private static double costFromJump(CalculationContext context, int srcX, int srcY, int srcZ, int jumpX, int jumpY, int jumpZ, double extraAscend, EnumFacing jumpDirection, JumpType type) {
         double costMod = 0;
         IBlockState landingOn = context.bsi.get0(srcX + jumpX, srcY + jumpY - 1, srcZ + jumpZ);
@@ -845,7 +843,7 @@ public class MovementParkourAdv extends Movement {
                 }
                 break;
             case EDGE_NEO:
-                jumpX = Integer.compare(jumpX, 0);
+                jumpX = Integer.compare(jumpX, 0); // make jumpX -1 if negative, 0 if 0, 1 if positive
                 jumpZ = Integer.compare(jumpZ, 0);
                 if (MovementHelper.fullyPassable(context, srcX + jumpX, srcY + 1, srcZ + jumpZ)) {
                     if (TEST_LOG && (type == TEST_TYPE || TEST_TYPE == null)) {
@@ -865,6 +863,8 @@ public class MovementParkourAdv extends Movement {
         }
         // logDebug("pos = " + ctx.playerFeetAsVec());
         ticksSinceJump++;
+        
+        // Calculate where we want to start. (i.e. get a run-up location)
         Vec3d offset;
         double accuracy;
         switch (type) {
@@ -902,6 +902,7 @@ public class MovementParkourAdv extends Movement {
                 throw new UnsupportedOperationException("Add the new JumpType to this switch.");
         }
         Vec3d preJumpPos = offset.add(src.x + 0.5, ctx.player().posY, src.z + 0.5);
+        
         double distance = preJumpPos.distanceTo(ctx.playerFeetAsVec());
         // System.out.println("Distance to prepLoc = " + distance);
         boolean prepLocPassable = MovementHelper.fullyPassable(ctx, src.add(new BlockPos(offset.add(offset.normalize().scale(0.4))))); // Checking 0.4 blocks in the direction of offset for a block (0.3 is the player hitbox width)
