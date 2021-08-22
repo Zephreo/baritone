@@ -43,6 +43,13 @@ import java.util.*;
 /**
  * Allows baritone to make jumps at different angles (diagonally)
  * 
+ * Currently there are a few edge case jumps that fail every time, these need to be fixed in the 
+ * Execution-Jump module or need to be invalidated during the collision detection module.
+ * 
+ * Other then that the Execution-Preparation module needs to be more accurate but that is very 
+ * low priority since it can be solved. It may be solved by using triangles to create sub-tick movements.
+ * Instead of moving directly in the direction we want to go, we go slightly to the side to slow us down.
+ * 
  * Like all baritone movements it is split into two major sections:
  * 
  * Pathfinding 
@@ -52,6 +59,8 @@ import java.util.*;
  *      - (We are given start location, and exit direction by baritone)
  *      - First uses the Jump Database to find which technique to use and which jumps
  *      - Then uses Entry Point calculation to get entry direction
+ *      - Collision Detection is used to determine which entry locations are valid
+ *      - Cost calculation is used and result is returned to baritone
  *  - This section is split into 4 sub-modules
  *  	- Jump Database
  *          - Major stuff: JumpType, static variables, ALL_VALID_DIR
@@ -86,18 +95,27 @@ import java.util.*;
  *  - This section is split into 4 sub-modules
  *      - Preparation
  *          - Major functions: prepared()
+ *          - Different location offset for every technique
  *          - Here we need to move to our run-up location and cancel any excess momentum we generate
  *          - TODO: this is too inaccurate, roughly patched with allowParkourCheat setting, where we teleport the player the last ~0.1 blocks to the final location
  *      - Run-up
  *          - Major functions: updateState() (partial)
+ *          - Differs for MOMENTUM, removed for EDGE
  *          - We need to move towards our exit direction
  *      - Jump
  *          - Major functions: updateState() (partial)
  *          - We need to move towards our entry direction
+ *          - Shared by all techniques, Differs for EDGE_NEO and MOMENTUM
+ *          - The jump module contains 2 main parts
+ *              - Overshoot detection, it calculates the predicted landing location and determines whether we 
+ *              should be sprinting, walking, shifting, or stopping, to reach the location
+ *              - Obstacle detection, it calculates if our predicted flight path intersects with any blocks, and 
+ *              if it does whether we need to move side-to-side to avoid it. (TODO: improve this)
  *          - TODO: Certain block configurations we collide with blocks causing us to fall.
- *              - North exit, North entry, 3x2+0, East blocked, causes a collision with the destDir blocking blocks
+ *              - JumpDir (the 3 direction) exit, JumpDir entry, 3x2+0, DestDir (the x2 direction) blocked, causes a collision with the destDir blocking blocks
  *      - Landing
  *          - Major functions: updateState() (partial)
+ *          - Shared by all techniques
  *          - We need to cancel excess momentum
  *
  * @author Zephreo
