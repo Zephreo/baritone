@@ -42,6 +42,63 @@ import java.util.*;
 
 /**
  * Allows baritone to make jumps at different angles (diagonally)
+ * 
+ * Like all baritone movements it is split into two major sections:
+ * 
+ * Pathfinding 
+ * 	- Baritone asks for possible parkour jumps in a certain direction from a set of coordinates
+ *  - These calculations need to be extremely quick
+ *  - Also note that the cost() is the parent of all modules, and calls the sub-modules in order:
+ *      - (We are given start location, and exit direction by baritone)
+ *      - First uses the Jump Database to find which technique to use and which jumps
+ *      - Then uses Entry Point calculation to get entry direction
+ *  - This section is split into 4 sub-modules
+ *  	- Jump Database
+ *          - Major stuff: JumpType, static variables, ALL_VALID_DIR
+ *          - We have the start location, and exit direction
+ *          - We need to figure out which jumps are theoretically possible in the given direction (ignoring blocks)
+ *      - Entry Point Calculation
+ *          - Major functions: getEntryPoints()
+ *          - We have a set of coordinates the jump/start location and the land/end location, 
+ *          we also know the exit direction (the direction we want to be facing when we press space)
+ *          - This is more theory rather than code. To make a jump we not only need to calculate where the 
+ *          start and end blocks are, but also how we are going to move through the air during the jump.
+ *          - I use axis-aligned exit and entry directions to decide this. When you initiate a jump say a 
+ *          south-south-east diagonal jump, the movement will decide whether it should face south or east at 
+ *          the start of the jump (this is based on if there are any of these directions have blocks in the way)
+ *          and it will also decide which direction to enter the ending location (also based on obstacles), in 
+ *          this example the Movement would favor exiting and entering in the south direction since the jump is 
+ *          more in the south direction, and only go east if south is blocked.
+ *      - Collision Detection
+ *          - Major functions: getLineApprox(), getLine(), approxBlock(), checkBlocksInWay(), getValidEntryPoint()
+ *          - We have a set of coordinates the jump/start location and the land/end location, 
+ *          we also know the exit direction (the direction we want to be facing when we press space) and 
+ *          the entry direction (the direction we want to be facing at the end of the jump)
+ *          - We need to calculate if any blocks are in the way of the player if they were to make the jump
+ *      - Cost Calculation
+ *          - Major functions: cost() (partial), calculateCost(), costFromJump()
+ *          - We have the all the details about the jump, start, end locations, entry, exit directions, and technique we want to use.
+ *          - We need to calculate how long the jump is going to take in ticks
+ * 
+ * Execution
+ *  - Baritone asks us what key it should be pressing at a given point during a jump
+ *  - These calculations can be slow, we have maximum of 50ms (1 tick) to respond (but try to be quick if possible)
+ *  - This section is split into 4 sub-modules
+ *      - Preparation
+ *          - Major functions: prepared()
+ *          - Here we need to move to our run-up location and cancel any excess momentum we generate
+ *          - TODO: this is too inaccurate, roughly patched with allowParkourCheat setting, where we teleport the player the last ~0.1 blocks to the final location
+ *      - Run-up
+ *          - Major functions: updateState() (partial)
+ *          - We need to move towards our exit direction
+ *      - Jump
+ *          - Major functions: updateState() (partial)
+ *          - We need to move towards our entry direction
+ *          - TODO: Certain block configurations we collide with blocks causing us to fall.
+ *              - North exit, North entry, 3x2+0, East blocked, causes a collision with the destDir blocking blocks
+ *      - Landing
+ *          - Major functions: updateState() (partial)
+ *          - We need to cancel excess momentum
  *
  * @author Zephreo
  */
@@ -1194,7 +1251,7 @@ public class MovementParkourAdv extends Movement {
                     state.setInput(Input.MOVE_FORWARD, true);
                 }
             } else if (inwards) {
-                // && !future.collidedVertically
+                // && !future.collidedVertically (implied)
                 state.getInputStates().remove(Input.SNEAK);
             }
         }
@@ -1267,6 +1324,7 @@ public class MovementParkourAdv extends Movement {
         }
         // logDebug("pos = " + ctx.playerFeetAsVec() + " ticks " + (jumpTime - ticksSinceJump - 1));
 
+        // === ERROR CHECK ===
         if (ticksSinceJump > 40) { // Should generally have <= 12 (exceptions are descending jumps)
             logDebug("jump timed out");
             return state.setStatus(MovementStatus.FAILED);
@@ -1309,6 +1367,7 @@ public class MovementParkourAdv extends Movement {
 
         Vec3d curDest = null; // The current destination (position we are moving towards)
 
+        // === RUN-UP ===
         if (ctx.playerFeet().equals(src) || ctx.playerFeet().equals(src.up()) || (ctx.player().onGround && distToJumpXZ < 0.5 && distFromStartXZ < 1.2) ||
                 (type == JumpType.MOMENTUM_NO_BLOCK && distFromStartXZ < 0.8)) { 
         	// The phase to be executed just before we make the main jump possibly including a few ticks afterwards
@@ -1388,6 +1447,7 @@ public class MovementParkourAdv extends Movement {
                 default:
                     throw new UnsupportedOperationException("Add new movement to this switch.");
             }
+        // === LANDING ===
         } else if (curDist < 1 && ctx.player().onGround) {
         	// The landing phase. Make sure we don't have momentum that could cause us to fall and also make sure our center is within the destination block.
         	if (curDist > 0.45) {
@@ -1422,6 +1482,7 @@ public class MovementParkourAdv extends Movement {
                 prevDistance = distance;
         	}
         } else {
+        	// === JUMP ===
         	// The main jump phase. Orient the player towards the destination (and avoid the main obstacles)
             switch (type) {
                 case NORMAL_2_1:
@@ -1491,6 +1552,7 @@ public class MovementParkourAdv extends Movement {
             }
         }
 
+        // === JUMP ===
         // Jump whenever we are at the edge of a block
         if (ctx.playerFeet().equals(dest)) {
             Block d = BlockStateInterface.getBlock(ctx, dest);
@@ -1517,6 +1579,7 @@ public class MovementParkourAdv extends Movement {
             }
         }
 
+        // === JUMP ===
         // Extra obstacle and momentum considerations
         if (curDest != null &&
                 type != JumpType.EDGE_NEO && (type != JumpType.MOMENTUM_BLOCK && type != JumpType.MOMENTUM_NO_BLOCK)) { // EDGE_NEO and MOMENTUM jumps are completed with very low room for error, dodging an obstacle will lead to missing the jump due to the slight decrease in speed
