@@ -22,9 +22,6 @@ import baritone.pathing.movement.movements.*;
 import baritone.utils.pathing.MutableMoveResult;
 import net.minecraft.util.Direction;
 
-import java.util.Collection;
-import java.util.Collections;
-
 /**
  * An enum of all possible movements attached to all possible directions they could be taken in
  *

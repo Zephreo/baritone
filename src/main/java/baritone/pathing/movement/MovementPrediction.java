@@ -30,7 +30,7 @@ import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +75,7 @@ public class MovementPrediction {
 
         AxisAlignedBB boundingBox;
 
-        private final ArrayList<Vec3d> positionCache = new ArrayList<>();
+        private final ArrayList<Vector3d> positionCache = new ArrayList<>();
 
         public double posX;
         public double posY;
@@ -104,7 +104,7 @@ public class MovementPrediction {
             double playerHeight = 1.8; // modified while sneaking?
             boundingBox = new AxisAlignedBB(posX - playerWidth, posY, posZ - playerWidth, posX + playerWidth, posY + playerHeight, posZ + playerWidth);
 
-            positionCache.add(new Vec3d(posX, posY, posZ)); // prevent null pointers
+            positionCache.add(new Vector3d(posX, posY, posZ)); // prevent null pointers
         }
 
         public void resetPositionToBB() {
@@ -130,11 +130,11 @@ public class MovementPrediction {
             }
         }
 
-        public Vec3d getPosition() {
+        public Vector3d getPosition() {
             return positionCache.get(tick);
         }
 
-        public Vec3d getPosition(int tick) {
+        public Vector3d getPosition(int tick) {
             return positionCache.get(tick);
         }
 
@@ -176,7 +176,7 @@ public class MovementPrediction {
             if (isJumping) lastJump = tick;
             rotationYaw = state.getTarget().rotation.getYaw();
             onLivingUpdate(this, state);
-            positionCache.add(new Vec3d(posX, posY, posZ));
+            positionCache.add(new Vector3d(posX, posY, posZ));
             tick++;
         }
 

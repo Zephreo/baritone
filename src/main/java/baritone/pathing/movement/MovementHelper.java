@@ -457,7 +457,7 @@ public interface MovementHelper extends ActionCosts, Helper {
      * @param state     Movement State
      * @param pos       Position to move to
      */
-    static void moveTowards(IPlayerContext ctx, MovementState state, Vec3d pos) {
+    static void moveTowards(IPlayerContext ctx, MovementState state, Vector3d pos) {
         state.setTarget(new MovementTarget(
                 new Rotation(RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
                         pos,

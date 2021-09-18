@@ -24,6 +24,7 @@ import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.vector.Vector3i;
 import net.minecraft.world.World;
 
 /**
@@ -128,8 +129,8 @@ public final class VecUtils {
      * @param vec2  The vector to add
      * @return      A new resultant vector
      */
-    public static Vec3i add(Vec3i vec1, Vec3i vec2) {
-        return new Vec3i(vec1.getX() + vec2.getX(), vec1.getY() + vec2.getY(), vec1.getZ() + vec2.getZ());
+    public static Vector3i add(Vector3i vec1, Vector3i vec2) {
+        return new Vector3i(vec1.getX() + vec2.getX(), vec1.getY() + vec2.getY(), vec1.getZ() + vec2.getZ());
     }
 
     /**
@@ -141,8 +142,8 @@ public final class VecUtils {
      * @param vec2Z The z value to add to the vector
      * @return      A new resultant vector
      */
-    public static Vec3i add(Vec3i vec1, int vec2X, int vec2Y, int vec2Z) {
-        return new Vec3i(vec1.getX() + vec2X, vec1.getY() + vec2Y, vec1.getZ() + vec2Z);
+    public static Vector3i add(Vector3i vec1, int vec2X, int vec2Y, int vec2Z) {
+        return new Vector3i(vec1.getX() + vec2X, vec1.getY() + vec2Y, vec1.getZ() + vec2Z);
     }
 
     /**
@@ -152,7 +153,7 @@ public final class VecUtils {
      * @param vec2  The vector to subtract
      * @return      A new resultant vector
      */
-    public static Vec3i subtract(Vec3i vec1, Vec3i vec2) {
-        return new Vec3i(vec1.getX() - vec2.getX(), vec1.getY() - vec2.getY(), vec1.getZ() - vec2.getZ());
+    public static Vector3i subtract(Vector3i vec1, Vector3i vec2) {
+        return new Vector3i(vec1.getX() - vec2.getX(), vec1.getY() - vec2.getY(), vec1.getZ() - vec2.getZ());
     }
 }
