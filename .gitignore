@@ -25,6 +25,12 @@ baritone_Client.launch
 *.iws
 /logs/
 
+# Eclipse Files
+.classpath
+.project
+.settings/
+baritone_Client.launch
+
 # Copyright Files
 !/.idea/copyright/Baritone.xml
 !/.idea/copyright/profiles_settings.xml
