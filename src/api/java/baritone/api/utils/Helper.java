@@ -18,6 +18,7 @@
 package baritone.api.utils;
 
 import baritone.api.BaritoneAPI;
+import baritone.api.utils.gui.BaritoneToast;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.BaseComponent;
@@ -70,7 +71,7 @@ public interface Helper {
      * @param message The message to display in the popup
      */
     default void logToast(Component title, Component message) {
-        mc.execute(() -> BaritoneAPI.getSettings().toaster.value.accept(title, message));
+        mc.execute(() -> BaritoneToast.addOrUpdate(mc.getToasts(), title, message, BaritoneAPI.getSettings().toastTimer.value));
     }
 
     /**
@@ -90,48 +91,6 @@ public interface Helper {
      */
     default void logToast(String message) {
         logToast(Helper.getPrefix(), new TextComponent(message));
-    }
-
-    /**
-     * Send a message as a desktop notification
-     *
-     * @param message The message to display in the notification
-     */
-    default void logNotification(String message) {
-        logNotification(message, false);
-    }
-
-    /**
-     * Send a message as a desktop notification
-     *
-     * @param message The message to display in the notification
-     * @param error   Whether to log as an error
-     */
-    default void logNotification(String message, boolean error) {
-        if (BaritoneAPI.getSettings().desktopNotifications.value) {
-            logNotificationDirect(message, error);
-        }
-    }
-
-    /**
-     * Send a message as a desktop notification regardless of desktopNotifications
-     * (should only be used for critically important messages)
-     *
-     * @param message The message to display in the notification
-     */
-    default void logNotificationDirect(String message) {
-        logNotificationDirect(message, false);
-    }
-
-    /**
-     * Send a message as a desktop notification regardless of desktopNotifications
-     * (should only be used for critically important messages)
-     *
-     * @param message The message to display in the notification
-     * @param error   Whether to log as an error
-     */
-    default void logNotificationDirect(String message, boolean error) {
-        mc.execute(() -> BaritoneAPI.getSettings().notifier.value.accept(message, error));
     }
 
     /**

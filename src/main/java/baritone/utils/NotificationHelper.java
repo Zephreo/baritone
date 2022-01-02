@@ -15,7 +15,7 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package baritone.api.utils;
+package baritone.utils;
 
 import org.apache.commons.lang3.SystemUtils;
 

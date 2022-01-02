@@ -18,7 +18,6 @@
 package baritone.behavior;
 
 import baritone.Baritone;
-import baritone.api.BaritoneAPI;
 import baritone.api.event.events.TickEvent;
 import baritone.utils.ToolSet;
 import net.minecraft.client.player.LocalPlayer;
@@ -121,9 +120,6 @@ public final class InventoryBehavior extends Behavior {
             if (stack.isEmpty()) {
                 continue;
             }
-            if (Baritone.settings().itemSaver.value && (stack.getDamageValue() + Baritone.settings().itemSaverThreshold.value) >= stack.getMaxDamage() && stack.getMaxDamage() > 1) {
-                continue;
-            }
             if (cla$$.isInstance(stack.getItem())) {
                 double speed = ToolSet.calculateSpeedVsBlock(stack, against.defaultBlockState()); // takes into account enchants
                 if (speed > bestSpeed) {
@@ -161,10 +157,6 @@ public final class InventoryBehavior extends Behavior {
     }
 
     public boolean throwaway(boolean select, Predicate<? super ItemStack> desired) {
-        return throwaway(select, desired, Baritone.settings().allowInventory.value);
-    }
-
-    public boolean throwaway(boolean select, Predicate<? super ItemStack> desired, boolean allowInventory) {
         LocalPlayer p = ctx.player();
         NonNullList<ItemStack> inv = p.getInventory().items;
         for (int i = 0; i < 9; i++) {
@@ -197,19 +189,6 @@ public final class InventoryBehavior extends Behavior {
                 }
             }
         }
-
-        if (allowInventory) {
-            for (int i = 9; i < 36; i++) {
-                if (desired.test(inv.get(i))) {
-                    swapWithHotBar(i, 7);
-                    if (select) {
-                        p.getInventory().selected = 7;
-                    }
-                    return true;
-                }
-            }
-        }
-
         return false;
     }
 }
