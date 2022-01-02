@@ -22,11 +22,11 @@ import baritone.api.utils.RotationUtils;
 import baritone.api.utils.input.Input;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.init.MobEffects;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.potion.Potions;
 import net.minecraft.potion.Potion;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.potion.Effect;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -46,8 +46,8 @@ public class MovementPrediction {
      * Mutable
      */
     public static class PredictionResult {
-        EntityPlayerSP player;
-        private final Map<Potion, PotionEffect> activePotionsMap;
+        PlayerEntity player;
+        private final Map<Potion, Effect> activePotionsMap;
         public int tick = 0; // ticks from the present
 
         /**
@@ -83,7 +83,7 @@ public class MovementPrediction {
 
         float fallDistance;
 
-        public PredictionResult(EntityPlayerSP p) {
+        public PredictionResult(PlayerEntity p) {
             player = p;
             activePotionsMap = p.getActivePotionMap();
 
@@ -113,14 +113,14 @@ public class MovementPrediction {
             this.posZ = (boundingBox.minZ + boundingBox.maxZ) / 2.0D;
         }
 
-        public void updateFallState(double y, boolean onGroundIn, IBlockState iblockstate) {
+        public void updateFallState(double y, boolean onGroundIn, BlockState blockstate) {
             if (onGroundIn) {
 
                 // Change fall damage if block negates it? HayBale?
-                // if iblockstate.getBlock() instanceof Block... fallDistance = 0 etc..
+                // if blockstate.getBlock() instanceof Block... fallDistance = 0 etc..
 
                 // Fall damage
-                float f = getPotionAmplifier(MobEffects.JUMP_BOOST);
+                float f = getPotionAmplifier(Potions.JUMP_BOOST);
                 int i = MathHelper.ceil((fallDistance - 3.0F - f));
                 damageTaken += i;
 
@@ -144,18 +144,18 @@ public class MovementPrediction {
 
         /**
          * returns the Amplifier of the potion if present, 0 otherwise.
-         * returns 0 if considerPotionEffects setting is false.
+         * returns 0 if considerEffects setting is false.
          * Amplifier starts at 1
          */
         public int getPotionAmplifier(Potion potionIn) {
-            if (Baritone.settings().considerPotionEffects.value && isPotionActive(potionIn)) {
+            if (Baritone.settings().considerEffects.value && isPotionActive(potionIn)) {
                 return activePotionsMap.get(potionIn).getAmplifier() + 1;
             }
             return 0;
         }
 
         public boolean isPotionActive(Potion potionIn) {
-            PotionEffect effect = activePotionsMap.get(potionIn);
+            Effect effect = activePotionsMap.get(potionIn);
             if (effect == null) {
                 return false;
             }
@@ -199,7 +199,7 @@ public class MovementPrediction {
         }
     }
 
-    public static PredictionResult getFutureLocation(EntityPlayerSP p, MovementState state, int ticksInTheFuture) {
+    public static PredictionResult getFutureLocation(PlayerEntity p, MovementState state, int ticksInTheFuture) {
         PredictionResult r = new PredictionResult(p);
         for (int tick = 0; tick < ticksInTheFuture; tick++) {
             r.update(state);
@@ -268,9 +268,9 @@ public class MovementPrediction {
         int blockYdown = MathHelper.floor(r.posY - 0.20000000298023224D);
         int blockZ = MathHelper.floor(r.posZ);
         BlockPos blockpos = new BlockPos(blockX, blockYdown, blockZ);
-        IBlockState landingBlockState = r.player.world.getBlockState(blockpos);
+        BlockState landingBlockState = r.player.world.getBlockState(blockpos);
         if (landingBlockState.getMaterial() == Material.AIR) {
-            IBlockState posbFenceState = r.player.world.getBlockState(blockpos.down());
+            BlockState posbFenceState = r.player.world.getBlockState(blockpos.down());
             Block blockBelow = posbFenceState.getBlock();
 
             if (blockBelow instanceof BlockFence || blockBelow instanceof BlockWall || blockBelow instanceof BlockFenceGate) {
@@ -343,7 +343,7 @@ public class MovementPrediction {
 
         double moveMod;
         if (r.onGround) {
-            moveMod = 0.1 * acceleration * (r.getPotionAmplifier(MobEffects.SPEED) * 0.2 - r.getPotionAmplifier(MobEffects.SLOWNESS) * 0.15 + 1);
+            moveMod = 0.1 * acceleration * (r.getPotionAmplifier(Potions.SPEED) * 0.2 - r.getPotionAmplifier(Potions.SLOWNESS) * 0.15 + 1);
         } else {
             moveMod = 0.02F;
         }
@@ -369,7 +369,7 @@ public class MovementPrediction {
         }
 
         if (r.isJumping) {
-            r.motionY = 0.42 + r.getPotionAmplifier(MobEffects.JUMP_BOOST) * 0.1;
+            r.motionY = 0.42 + r.getPotionAmplifier(Potions.JUMP_BOOST) * 0.1;
             if (state.getInputStates().getOrDefault(Input.SPRINT, false)) {
                 double f = r.rotationYaw * RotationUtils.DEG_TO_RAD;
                 r.motionX -= Math.sin(f) * 0.2;

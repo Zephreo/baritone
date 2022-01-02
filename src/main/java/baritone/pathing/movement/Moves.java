@@ -17,6 +17,8 @@
 
 package baritone.pathing.movement;
 
+import java.util.Collection;
+
 import baritone.api.utils.BetterBlockPos;
 import baritone.pathing.movement.movements.*;
 import baritone.utils.pathing.MutableMoveResult;
@@ -337,12 +339,12 @@ public enum Moves {
 
         @Override
         public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
-            return MovementParkourAdv.cost(context, src, EnumFacing.NORTH);
+            return MovementParkourAdv.cost(context, src, Direction.NORTH);
         }
 
         @Override
         public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
-            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.NORTH);
+            MovementParkourAdv.cost(context, x, y, z, result, Direction.NORTH);
         }
     },
 
@@ -359,12 +361,12 @@ public enum Moves {
 
         @Override
         public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
-            return MovementParkourAdv.cost(context, src, EnumFacing.SOUTH);
+            return MovementParkourAdv.cost(context, src, Direction.SOUTH);
         }
 
         @Override
         public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
-            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.SOUTH);
+            MovementParkourAdv.cost(context, x, y, z, result, Direction.SOUTH);
         }
     },
 
@@ -381,12 +383,12 @@ public enum Moves {
 
         @Override
         public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
-            return MovementParkourAdv.cost(context, src, EnumFacing.EAST);
+            return MovementParkourAdv.cost(context, src, Direction.EAST);
         }
 
         @Override
         public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
-            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.EAST);
+            MovementParkourAdv.cost(context, x, y, z, result, Direction.EAST);
         }
     },
 
@@ -403,12 +405,12 @@ public enum Moves {
 
         @Override
         public Collection<Movement> getMultiDestination(CalculationContext context, BetterBlockPos src) {
-            return MovementParkourAdv.cost(context, src, EnumFacing.WEST);
+            return MovementParkourAdv.cost(context, src, Direction.WEST);
         }
 
         @Override
         public void apply(CalculationContext context, int x, int y, int z, MutableMoveResult result) {
-            MovementParkourAdv.cost(context, x, y, z, result, EnumFacing.WEST);
+            MovementParkourAdv.cost(context, x, y, z, result, Direction.WEST);
         }
     };
 
