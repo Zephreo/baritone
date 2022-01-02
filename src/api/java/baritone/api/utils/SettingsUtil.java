@@ -19,14 +19,13 @@ package baritone.api.utils;
 
 import baritone.api.BaritoneAPI;
 import baritone.api.Settings;
-import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
-import net.minecraft.item.Item;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.vector.Vector3i;
-import net.minecraft.util.registry.Registry;
-
+import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -50,8 +49,9 @@ import java.util.stream.Stream;
 
 public class SettingsUtil {
 
-    private static final Path SETTINGS_PATH = Minecraft.getInstance().gameDir.toPath().resolve("baritone").resolve("settings.txt");
+    private static final Path SETTINGS_PATH = Minecraft.getInstance().gameDirectory.toPath().resolve("baritone").resolve("settings.txt");
     private static final Pattern SETTING_PATTERN = Pattern.compile("^(?<setting>[^ ]+) +(?<value>.+)"); // key and value split by the first space
+    private static final String[] JAVA_ONLY_SETTINGS = {"logger", "notifier", "toaster"};
 
 
     private static boolean isComment(String line) {
@@ -114,7 +114,7 @@ public class SettingsUtil {
                 System.out.println("NULL SETTING?" + setting.getName());
                 continue;
             }
-            if (setting.getName().equals("logger")) {
+            if (javaOnlySetting(setting)) {
                 continue; // NO
             }
             if (setting.value == setting.defaultValue) {
@@ -168,11 +168,26 @@ public class SettingsUtil {
     }
 
     public static String settingToString(Settings.Setting setting) throws IllegalStateException {
-        if (setting.getName().equals("logger")) {
-            return "logger";
+        if (javaOnlySetting(setting)) {
+            return setting.getName();
         }
 
         return setting.getName() + " " + settingValueToString(setting);
+    }
+
+    /**
+     * This should always be the same as whether the setting can be parsed from or serialized to a string
+     *
+     * @param the setting
+     * @return true if the setting can not be set or read by the user
+     */
+    public static boolean javaOnlySetting(Settings.Setting setting) {
+        for (String name : JAVA_ONLY_SETTINGS) { // no JAVA_ONLY_SETTINGS.contains(...) because that would be case sensitive
+            if (setting.getName().equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void parseAndApply(Settings settings, String settingName, String settingValue) throws IllegalStateException, NumberFormatException {
@@ -226,8 +241,8 @@ public class SettingsUtil {
                 color -> color.getRed() + "," + color.getGreen() + "," + color.getBlue()
         ),
         VEC3I(
-                Vector3i.class,
-                str -> new Vector3i(Integer.parseInt(str.split(",")[0]), Integer.parseInt(str.split(",")[1]), Integer.parseInt(str.split(",")[2])),
+                Vec3i.class,
+                str -> new Vec3i(Integer.parseInt(str.split(",")[0]), Integer.parseInt(str.split(",")[1]), Integer.parseInt(str.split(",")[2])),
                 vec -> vec.getX() + "," + vec.getY() + "," + vec.getZ()
         ),
         BLOCK(
@@ -237,7 +252,7 @@ public class SettingsUtil {
         ),
         ITEM(
                 Item.class,
-                str -> Registry.ITEM.getOrDefault(new ResourceLocation(str.trim())), // TODO this now returns AIR on failure instead of null, is that an issue?
+                str -> Registry.ITEM.get(new ResourceLocation(str.trim())), // TODO this now returns AIR on failure instead of null, is that an issue?
                 item -> Registry.ITEM.getKey(item).toString()
         ),
         LIST() {

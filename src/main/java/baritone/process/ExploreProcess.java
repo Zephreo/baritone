@@ -29,18 +29,16 @@ import baritone.api.process.PathingCommandType;
 import baritone.api.utils.MyChunkPos;
 import baritone.cache.CachedWorld;
 import baritone.utils.BaritoneProcessHelper;
-import baritone.utils.NotificationHelper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
 
 public final class ExploreProcess extends BaritoneProcessHelper implements IExploreProcess {
 
@@ -84,8 +82,8 @@ public final class ExploreProcess extends BaritoneProcessHelper implements IExpl
     public PathingCommand onTick(boolean calcFailed, boolean isSafeToCancel) {
         if (calcFailed) {
             logDirect("Failed");
-            if (Baritone.settings().desktopNotifications.value && Baritone.settings().notificationOnExploreFinished.value) {
-                NotificationHelper.notify("Exploration failed", true);
+            if (Baritone.settings().notificationOnExploreFinished.value) {
+                logNotification("Exploration failed", true);
             }
             onLostControl();
             return null;
@@ -93,8 +91,8 @@ public final class ExploreProcess extends BaritoneProcessHelper implements IExpl
         IChunkFilter filter = calcFilter();
         if (!Baritone.settings().disableCompletionCheck.value && filter.countRemain() == 0) {
             logDirect("Explored all chunks");
-            if (Baritone.settings().desktopNotifications.value && Baritone.settings().notificationOnExploreFinished.value) {
-                NotificationHelper.notify("Explored all chunks", false);
+            if (Baritone.settings().notificationOnExploreFinished.value) {
+                logNotification("Explored all chunks", false);
             }
             onLostControl();
             return null;

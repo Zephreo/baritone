@@ -17,22 +17,24 @@
 
 package baritone.api;
 
+import baritone.api.utils.NotificationHelper;
 import baritone.api.utils.SettingsUtil;
 import baritone.api.utils.TypeUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
+import baritone.api.utils.gui.BaritoneToast;
 import net.minecraft.client.Minecraft;
-import net.minecraft.item.Item;
-import net.minecraft.util.math.vector.Vector3i;
-import net.minecraft.util.text.ITextComponent;
-
+import net.minecraft.core.Vec3i;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * Baritone's settings. Settings apply to all Baritone instances.
@@ -70,9 +72,9 @@ public final class Settings {
     public final Setting<Boolean> assumeExternalAutoTool = new Setting<>(false);
 
     /**
-     * If this setting is on, no auto tool will occur at all, not at calculation time nor execution time
+     * Automatically select the best available tool
      */
-    public final Setting<Boolean> disableAutoTool = new Setting<>(false);
+    public final Setting<Boolean> autoTool = new Setting<>(true);
 
     /**
      * It doesn't actually take twenty ticks to place a block, this cost is so high
@@ -621,6 +623,12 @@ public final class Settings {
     public final Setting<Boolean> renderGoal = new Setting<>(true);
 
     /**
+     * Render the goal as a sick animated thingy instead of just a box
+     * (also controls animation of GoalXZ if {@link #renderGoalXZBeacon} is enabled)
+     */
+    public final Setting<Boolean> renderGoalAnimated = new Setting<>(true);
+
+    /**
      * Render selection boxes
      */
     public final Setting<Boolean> renderSelectionBoxes = new Setting<>(true);
@@ -750,6 +758,11 @@ public final class Settings {
     public final Setting<Boolean> itemSaver = new Setting<>(false);
 
     /**
+     * Durability to leave on the tool when using itemSaver
+     */
+    public final Setting<Integer> itemSaverThreshold = new Setting<>(10);
+
+    /**
      * Always prefer silk touch tools over regular tools. This will not sacrifice speed, but it will always prefer silk
      * touch tools over other tools of the same speed. This includes always choosing ANY silk touch tool over your hand.
      */
@@ -793,6 +806,7 @@ public final class Settings {
 
     /**
      * Sets the minimum y level whilst mining - set to 0 to turn off.
+     * if world has negative y values, subtract the min world height to get the value to put here
      */
     public final Setting<Integer> minYLevelWhileMining = new Setting<>(0);
 
@@ -809,7 +823,7 @@ public final class Settings {
     public final Setting<Integer> allowOnlyExposedOresDistance = new Setting<>(1);
 
     /**
-     * When GetToBlock doesn't know any locations for the desired block, explore randomly instead of giving up.
+     * When GetToBlock or non-legit Mine doesn't know any locations for the desired block, explore randomly instead of giving up.
      */
     public final Setting<Boolean> exploreForBlocks = new Setting<>(true);
 
@@ -862,6 +876,11 @@ public final class Settings {
     public final Setting<Boolean> layerOrder = new Setting<>(false);
 
     /**
+     * How high should the individual layers be?
+     */
+    public final Setting<Integer> layerHeight = new Setting<>(1);
+
+    /**
      * Start building the schematic at a specific layer.
      * Can help on larger builds when schematic wants to break things its already built
      */
@@ -873,9 +892,14 @@ public final class Settings {
     public final Setting<Boolean> skipFailedLayers = new Setting<>(false);
 
     /**
+     * Only build the selected part of schematics
+     */
+     public final Setting<Boolean> buildOnlySelection = new Setting<>(false);
+
+    /**
      * How far to move before repeating the build. 0 to disable repeating on a certain axis, 0,0,0 to disable entirely
      */
-    public final Setting<Vector3i> buildRepeat = new Setting<>(new Vector3i(0, 0, 0));
+    public final Setting<Vec3i> buildRepeat = new Setting<>(new Vec3i(0, 0, 0));
 
     /**
      * How many times to buildrepeat. -1 for infinite.
@@ -997,6 +1021,7 @@ public final class Settings {
      * Disallow MineBehavior from using X-Ray to see where the ores are. Turn this option on to force it to mine "legit"
      * where it will only mine an ore once it can actually see it, so it won't do or know anything that a normal player
      * couldn't. If you don't want it to look like you're X-Raying, turn this on
+     * This will always explore, regardless of exploreForBlocks
      */
     public final Setting<Boolean> legitMine = new Setting<>(false);
 
@@ -1081,7 +1106,21 @@ public final class Settings {
      * via {@link Consumer#andThen(Consumer)} or it can completely be overriden via setting
      * {@link Setting#value};
      */
-    public final Setting<Consumer<ITextComponent>> logger = new Setting<>(Minecraft.getInstance().ingameGUI.getChatGUI()::printChatMessage);
+    public final Setting<Consumer<Component>> logger = new Setting<>(Minecraft.getInstance().gui.getChat()::addMessage);
+
+    /**
+     * The function that is called when Baritone will send a desktop notification. This function can be added to
+     * via {@link Consumer#andThen(Consumer)} or it can completely be overriden via setting
+     * {@link Setting#value};
+     */
+    public final Setting<BiConsumer<String, Boolean>> notifier = new Setting<>(NotificationHelper::notify);
+
+    /**
+     * The function that is called when Baritone will show a toast. This function can be added to
+     * via {@link Consumer#andThen(Consumer)} or it can completely be overriden via setting
+     * {@link Setting#value};
+     */
+    public final Setting<BiConsumer<Component, Component>> toaster = new Setting<>(BaritoneToast::addOrUpdate);
 
     /**
      * Print out ALL command exceptions as a stack trace to stdout, even simple syntax errors

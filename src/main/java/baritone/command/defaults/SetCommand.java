@@ -23,25 +23,24 @@ import baritone.api.Settings;
 import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.exception.CommandException;
+import baritone.api.command.exception.CommandInvalidStateException;
 import baritone.api.command.exception.CommandInvalidTypeException;
 import baritone.api.command.helpers.Paginator;
 import baritone.api.command.helpers.TabCompleteHelper;
 import baritone.api.utils.SettingsUtil;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.event.ClickEvent;
-import net.minecraft.util.text.event.HoverEvent;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.BaseComponent;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.TextComponent;
 
 import static baritone.api.command.IBaritoneChatControl.FORCE_COMMAND_PREFIX;
-import static baritone.api.utils.SettingsUtil.settingTypeToString;
-import static baritone.api.utils.SettingsUtil.settingValueToString;
+import static baritone.api.utils.SettingsUtil.*;
 
 public class SetCommand extends Command {
 
@@ -65,7 +64,7 @@ public class SetCommand extends Command {
             args.requireMax(1);
             List<? extends Settings.Setting> toPaginate =
                     (viewModified ? SettingsUtil.modifiedSettings(Baritone.settings()) : Baritone.settings().allSettings).stream()
-                            .filter(s -> !s.getName().equals("logger"))
+                            .filter(s -> !javaOnlySetting(s))
                             .filter(s -> s.getName().toLowerCase(Locale.US).contains(search.toLowerCase(Locale.US)))
                             .sorted((s1, s2) -> String.CASE_INSENSITIVE_ORDER.compare(s1.getName(), s2.getName()))
                             .collect(Collectors.toList());
@@ -78,23 +77,24 @@ public class SetCommand extends Command {
                                     : String.format("All %ssettings:", viewModified ? "modified " : "")
                     ),
                     setting -> {
-                        TextComponent typeComponent = new StringTextComponent(String.format(
+                        TextComponent typeComponent = new TextComponent(String.format(
                                 " (%s)",
                                 settingTypeToString(setting)
                         ));
-                        typeComponent.setStyle(typeComponent.getStyle().setFormatting(TextFormatting.DARK_GRAY));
-                        TextComponent hoverComponent = new StringTextComponent("");
-                        hoverComponent.setStyle(hoverComponent.getStyle().setFormatting(TextFormatting.GRAY));
-                        hoverComponent.appendString(setting.getName());
-                        hoverComponent.appendString(String.format("\nType: %s", settingTypeToString(setting)));
-                        hoverComponent.appendString(String.format("\n\nValue:\n%s", settingValueToString(setting)));
+                        typeComponent.setStyle(typeComponent.getStyle().withColor(ChatFormatting.DARK_GRAY));
+                        TextComponent hoverComponent = new TextComponent("");
+                        hoverComponent.setStyle(hoverComponent.getStyle().withColor(ChatFormatting.GRAY));
+                        hoverComponent.append(setting.getName());
+                        hoverComponent.append(String.format("\nType: %s", settingTypeToString(setting)));
+                        hoverComponent.append(String.format("\n\nValue:\n%s", settingValueToString(setting)));
+                        hoverComponent.append(String.format("\n\nDefault Value:\n%s", settingDefaultToString(setting)));
                         String commandSuggestion = Baritone.settings().prefix.value + String.format("set %s ", setting.getName());
-                        TextComponent component = new StringTextComponent(setting.getName());
-                        component.setStyle(component.getStyle().setFormatting(TextFormatting.GRAY));
+                        TextComponent component = new TextComponent(setting.getName());
+                        component.setStyle(component.getStyle().withColor(ChatFormatting.GRAY));
                         component.append(typeComponent);
                         component.setStyle(component.getStyle()
-                                .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverComponent))
-                                .setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, commandSuggestion)));
+                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverComponent))
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, commandSuggestion)));
                         return component;
                     },
                     FORCE_COMMAND_PREFIX + "set " + arg + " " + search
@@ -127,6 +127,12 @@ public class SetCommand extends Command {
                 .orElse(null);
         if (setting == null) {
             throw new CommandInvalidTypeException(args.consumed(), "a valid setting");
+        }
+        if (javaOnlySetting(setting)) {
+            // ideally it would act as if the setting didn't exist
+            // but users will see it in Settings.java or its javadoc
+            // so at some point we have to tell them or they will see it as a bug
+            throw new CommandInvalidStateException(String.format("Setting %s can only be used via the api.", setting.getName()));
         }
         if (!doingSomething && !args.hasAny()) {
             logDirect(String.format("Value of setting %s:", setting.getName()));
@@ -163,23 +169,23 @@ public class SetCommand extends Command {
                         settingValueToString(setting)
                 ));
             }
-            TextComponent oldValueComponent = new StringTextComponent(String.format("Old value: %s", oldValue));
+            BaseComponent oldValueComponent = new TextComponent(String.format("Old value: %s", oldValue));
             oldValueComponent.setStyle(oldValueComponent.getStyle()
-                    .setFormatting(TextFormatting.GRAY)
-                    .setHoverEvent(new HoverEvent(
+                    .withColor(ChatFormatting.GRAY)
+                    .withHoverEvent(new HoverEvent(
                             HoverEvent.Action.SHOW_TEXT,
-                            new StringTextComponent("Click to set the setting back to this value")
+                            new TextComponent("Click to set the setting back to this value")
                     ))
-                    .setClickEvent(new ClickEvent(
+                    .withClickEvent(new ClickEvent(
                             ClickEvent.Action.RUN_COMMAND,
                             FORCE_COMMAND_PREFIX + String.format("set %s %s", setting.getName(), oldValue)
                     )));
             logDirect(oldValueComponent);
             if ((setting.getName().equals("chatControl") && !(Boolean) setting.value && !Baritone.settings().chatControlAnyway.value) ||
                     setting.getName().equals("chatControlAnyway") && !(Boolean) setting.value && !Baritone.settings().chatControl.value) {
-                logDirect("Warning: Chat commands will no longer work. If you want to revert this change, use prefix control (if enabled) or click the old value listed above.", TextFormatting.RED);
+                logDirect("Warning: Chat commands will no longer work. If you want to revert this change, use prefix control (if enabled) or click the old value listed above.", ChatFormatting.RED);
             } else if (setting.getName().equals("prefixControl") && !(Boolean) setting.value) {
-                logDirect("Warning: Prefixed commands will no longer work. If you want to revert this change, use chat control (if enabled) or click the old value listed above.", TextFormatting.RED);
+                logDirect("Warning: Prefixed commands will no longer work. If you want to revert this change, use chat control (if enabled) or click the old value listed above.", ChatFormatting.RED);
             }
         }
         SettingsUtil.save(Baritone.settings());

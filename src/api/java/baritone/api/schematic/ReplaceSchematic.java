@@ -18,7 +18,7 @@
 package baritone.api.schematic;
 
 import baritone.api.utils.BlockOptionalMetaLookup;
-import net.minecraft.block.BlockState;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class ReplaceSchematic extends MaskSchematic {
 
@@ -29,6 +29,18 @@ public class ReplaceSchematic extends MaskSchematic {
         super(schematic);
         this.filter = filter;
         this.cache = new Boolean[widthX()][heightY()][lengthZ()];
+    }
+
+    @Override
+    public void reset() {
+        // it's final, can't use this.cache = new Boolean[widthX()][heightY()][lengthZ()]
+        for (int x = 0; x < cache.length; x++) {
+            for (int y = 0; y < cache[0].length; y++) {
+                for (int z = 0; z < cache[0][0].length; z++) {
+                    cache[x][y][z] = null;
+                }
+            }
+        }
     }
 
     @Override
