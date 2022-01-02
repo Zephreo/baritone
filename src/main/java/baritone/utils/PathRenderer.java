@@ -26,25 +26,25 @@ import baritone.api.utils.Helper;
 import baritone.api.utils.interfaces.IGoalRenderPos;
 import baritone.behavior.PathingBehavior;
 import baritone.pathing.path.PathExecutor;
+import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Matrix4f;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.renderer.tileentity.BeaconTileEntityRenderer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.entity.Entity;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.shapes.VoxelShape;
+import net.minecraft.util.math.shapes.VoxelShapes;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.world.DimensionType;
+
 import java.awt.*;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import net.minecraft.client.renderer.blockentity.BeaconRenderer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -74,21 +74,21 @@ public final class PathRenderer implements IRenderer, Helper {
     public static void render(RenderEvent event, PathingBehavior behavior) {
         float partialTicks = event.getPartialTicks();
         Goal goal = behavior.getGoal();
-        if (Helper.mc.screen instanceof GuiClick) {
-            ((GuiClick) Helper.mc.screen).onRender(event.getModelViewStack(), event.getProjectionMatrix());
+        if (Helper.mc.currentScreen instanceof GuiClick) {
+            ((GuiClick) Helper.mc.currentScreen).onRender(event.getModelViewStack(), event.getProjectionMatrix());
         }
 
-        DimensionType thisPlayerDimension = behavior.baritone.getPlayerContext().world().dimensionType();
-        DimensionType currentRenderViewDimension = BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext().world().dimensionType();
+        DimensionType thisPlayerDimension = behavior.baritone.getPlayerContext().world().getDimensionType();
+        DimensionType currentRenderViewDimension = BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext().world().getDimensionType();
 
         if (thisPlayerDimension != currentRenderViewDimension) {
             // this is a path for a bot in a different dimension, don't render it
             return;
         }
 
-        Entity renderView = Helper.mc.getCameraEntity();
+        Entity renderView = Helper.mc.getRenderViewEntity();
 
-        if (renderView.level != BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext().world()) {
+        if (renderView.world != BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext().world()) {
             System.out.println("I have no idea what's going on");
             System.out.println("The primary baritone is in a different world than the render view entity");
             System.out.println("Not rendering the path");
@@ -136,7 +136,7 @@ public final class PathRenderer implements IRenderer, Helper {
         });
     }
 
-    public static void drawPath(PoseStack stack, IPath path, int startIndex, Color color, boolean fadeOut, int fadeStart0, int fadeEnd0) {
+    public static void drawPath(MatrixStack stack, IPath path, int startIndex, Color color, boolean fadeOut, int fadeStart0, int fadeEnd0) {
         IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value, settings.renderPathIgnoreDepth.value);
 
         int fadeStart = fadeStart0 + startIndex;
@@ -174,34 +174,33 @@ public final class PathRenderer implements IRenderer, Helper {
 
             drawLine(stack, start.x, start.y, start.z, end.x, end.y, end.z);
 
-            tessellator.end();
+            tessellator.draw();
         }
 
         IRenderer.endLines(settings.renderPathIgnoreDepth.value);
     }
 
 
-    public static void drawLine(PoseStack stack, double x1, double y1, double z1, double x2, double y2, double z2) {
-        Matrix4f matrix4f = stack.last().pose();
+    public static void drawLine(MatrixStack stack, double x1, double y1, double z1, double x2, double y2, double z2) {
+        Matrix4f matrix4f = stack.getLast().getMatrix();
 
         double vpX = posX();
         double vpY = posY();
         double vpZ = posZ();
         boolean renderPathAsFrickinThingy = !settings.renderPathAsLine.value;
 
-        //TODO: check
-        buffer.begin(renderPathAsFrickinThingy ? VertexFormat.Mode.DEBUG_LINE_STRIP : VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-        buffer.vertex(matrix4f, (float) (x1 + 0.5D - vpX), (float) (y1 + 0.5D - vpY), (float) (z1 + 0.5D - vpZ)).color(color[0], color[1], color[2], color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) (x2 + 0.5D - vpX), (float) (y2 + 0.5D - vpY), (float) (z2 + 0.5D - vpZ)).color(color[0], color[1], color[2], color[3]).endVertex();
+        buffer.begin(renderPathAsFrickinThingy ? GL_LINE_STRIP : GL_LINES, DefaultVertexFormats.POSITION);
+        buffer.pos(matrix4f, (float) (x1 + 0.5D - vpX), (float) (y1 + 0.5D - vpY), (float) (z1 + 0.5D - vpZ)).endVertex();
+        buffer.pos(matrix4f, (float) (x2 + 0.5D - vpX), (float) (y2 + 0.5D - vpY), (float) (z2 + 0.5D - vpZ)).endVertex();
 
         if (renderPathAsFrickinThingy) {
-            buffer.vertex(matrix4f, (float) (x2 + 0.5D - vpX), (float) (y2 + 0.53D - vpY), (float) (z2 + 0.5D - vpZ)).color(color[0], color[1], color[2], color[3]).endVertex();
-            buffer.vertex(matrix4f, (float) (x1 + 0.5D - vpX), (float) (y1 + 0.53D - vpY), (float) (z1 + 0.5D - vpZ)).color(color[0], color[1], color[2], color[3]).endVertex();
-            buffer.vertex(matrix4f, (float) (x1 + 0.5D - vpX), (float) (y1 + 0.5D - vpY), (float) (z1 + 0.5D - vpZ)).color(color[0], color[1], color[2], color[3]).endVertex();
+            buffer.pos(matrix4f, (float) (x2 + 0.5D - vpX), (float) (y2 + 0.53D - vpY), (float) (z2 + 0.5D - vpZ)).endVertex();
+            buffer.pos(matrix4f, (float) (x1 + 0.5D - vpX), (float) (y1 + 0.53D - vpY), (float) (z1 + 0.5D - vpZ)).endVertex();
+            buffer.pos(matrix4f, (float) (x1 + 0.5D - vpX), (float) (y1 + 0.5D - vpY), (float) (z1 + 0.5D - vpZ)).endVertex();
         }
     }
 
-    public static void drawManySelectionBoxes(PoseStack stack, Entity player, Collection<BlockPos> positions, Color color) {
+    public static void drawManySelectionBoxes(MatrixStack stack, Entity player, Collection<BlockPos> positions, Color color) {
         IRenderer.startLines(color, settings.pathRenderLineWidthPixels.value, settings.renderSelectionBoxesIgnoreDepth.value);
 
         //BlockPos blockpos = movingObjectPositionIn.getBlockPos();
@@ -209,16 +208,16 @@ public final class PathRenderer implements IRenderer, Helper {
 
         positions.forEach(pos -> {
             BlockState state = bsi.get0(pos);
-            VoxelShape shape = state.getShape(player.level, pos);
-            AABB toDraw = shape.isEmpty() ? Shapes.block().bounds() : shape.bounds();
-            toDraw = toDraw.move(pos);
+            VoxelShape shape = state.getShape(player.world, pos);
+            AxisAlignedBB toDraw = shape.isEmpty() ? VoxelShapes.fullCube().getBoundingBox() : shape.getBoundingBox();
+            toDraw = toDraw.offset(pos);
             IRenderer.drawAABB(stack, toDraw, .002D);
         });
 
         IRenderer.endLines(settings.renderSelectionBoxesIgnoreDepth.value);
     }
 
-    public static void drawDankLitGoalBox(PoseStack stack, Entity player, Goal goal, float partialTicks, Color color) {
+    public static void drawDankLitGoalBox(MatrixStack stack, Entity player, Goal goal, float partialTicks, Color color) {
         double renderPosX = posX();
         double renderPosY = posY();
         double renderPosZ = posZ();
@@ -226,7 +225,7 @@ public final class PathRenderer implements IRenderer, Helper {
         double minZ, maxZ;
         double minY, maxY;
         double y1, y2;
-        double y = Mth.cos((float) (((float) ((System.nanoTime() / 100000L) % 20000L)) / 20000F * Math.PI * 2));
+        double y = MathHelper.cos((float) (((float) ((System.nanoTime() / 100000L) % 20000L)) / 20000F * Math.PI * 2));
         if (goal instanceof IGoalRenderPos) {
             BlockPos goalPos = ((IGoalRenderPos) goal).getGoalPos();
             minX = goalPos.getX() + 0.002 - renderPosX;
@@ -251,23 +250,21 @@ public final class PathRenderer implements IRenderer, Helper {
             if (settings.renderGoalXZBeacon.value) {
                 glPushAttrib(GL_LIGHTING_BIT);
 
-                //TODO: check
-                Helper.mc.getTextureManager().bindForSetup(TEXTURE_BEACON_BEAM);
+                Helper.mc.getTextureManager().bindTexture(TEXTURE_BEACON_BEAM);
                 if (settings.renderGoalIgnoreDepth.value) {
                     RenderSystem.disableDepthTest();
                 }
 
-                stack.pushPose(); // push
+                stack.push(); // push
                 stack.translate(goalPos.getX() - renderPosX, -renderPosY, goalPos.getZ() - renderPosZ); // translate
 
-                //TODO: check
-                BeaconRenderer.renderBeaconBeam(
+                BeaconTileEntityRenderer.renderBeamSegment(
                         stack,
-                        mc.renderBuffers().bufferSource(),
+                        mc.getRenderTypeBuffers().getBufferSource(),
                         TEXTURE_BEACON_BEAM,
                         partialTicks,
                         1.0F,
-                        player.level.getGameTime(),
+                        player.world.getGameTime(),
                         0,
                         256,
                         color.getColorComponents(null),
@@ -277,7 +274,7 @@ public final class PathRenderer implements IRenderer, Helper {
                         0.25F
                 );
 
-                stack.popPose(); // pop
+                stack.pop(); // pop
 
                 if (settings.renderGoalIgnoreDepth.value) {
                     RenderSystem.enableDepthTest();
@@ -306,10 +303,10 @@ public final class PathRenderer implements IRenderer, Helper {
             return;
         } else if (goal instanceof GoalYLevel) {
             GoalYLevel goalpos = (GoalYLevel) goal;
-            minX = player.position().x - settings.yLevelBoxSize.value - renderPosX;
-            minZ = player.position().z - settings.yLevelBoxSize.value - renderPosZ;
-            maxX = player.position().x + settings.yLevelBoxSize.value - renderPosX;
-            maxZ = player.position().z + settings.yLevelBoxSize.value - renderPosZ;
+            minX = player.getPositionVec().x - settings.yLevelBoxSize.value - renderPosX;
+            minZ = player.getPositionVec().z - settings.yLevelBoxSize.value - renderPosZ;
+            maxX = player.getPositionVec().x + settings.yLevelBoxSize.value - renderPosX;
+            maxZ = player.getPositionVec().z + settings.yLevelBoxSize.value - renderPosZ;
             minY = ((GoalYLevel) goal).level - renderPosY;
             maxY = minY + 2;
             y1 = 1 + y + goalpos.level - renderPosY;
@@ -323,32 +320,30 @@ public final class PathRenderer implements IRenderer, Helper {
         renderHorizontalQuad(stack, minX, maxX, minZ, maxZ, y1);
         renderHorizontalQuad(stack, minX, maxX, minZ, maxZ, y2);
 
-        Matrix4f matrix4f = stack.last().pose();
-        buffer.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-        buffer.vertex(matrix4f, (float) minX, (float) minY, (float) minZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) minX, (float) maxY, (float) minZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) maxX, (float) minY, (float) minZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) maxX, (float) maxY, (float) minZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) maxX, (float) minY, (float) maxZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) maxX, (float) maxY, (float) maxZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) minX, (float) minY, (float) maxZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        buffer.vertex(matrix4f, (float) minX, (float) maxY, (float) maxZ).color(IRenderer.color[0], IRenderer.color[1], IRenderer.color[2], IRenderer.color[3]).endVertex();
-        tessellator.end();
+        Matrix4f matrix4f = stack.getLast().getMatrix();
+        buffer.begin(GL_LINES, DefaultVertexFormats.POSITION);
+        buffer.pos(matrix4f, (float) minX, (float) minY, (float) minZ).endVertex();
+        buffer.pos(matrix4f, (float) minX, (float) maxY, (float) minZ).endVertex();
+        buffer.pos(matrix4f, (float) maxX, (float) minY, (float) minZ).endVertex();
+        buffer.pos(matrix4f, (float) maxX, (float) maxY, (float) minZ).endVertex();
+        buffer.pos(matrix4f, (float) maxX, (float) minY, (float) maxZ).endVertex();
+        buffer.pos(matrix4f, (float) maxX, (float) maxY, (float) maxZ).endVertex();
+        buffer.pos(matrix4f, (float) minX, (float) minY, (float) maxZ).endVertex();
+        buffer.pos(matrix4f, (float) minX, (float) maxY, (float) maxZ).endVertex();
+        tessellator.draw();
 
         IRenderer.endLines(settings.renderGoalIgnoreDepth.value);
     }
 
-    private static void renderHorizontalQuad(PoseStack stack, double minX, double maxX, double minZ, double maxZ, double y) {
+    private static void renderHorizontalQuad(MatrixStack stack, double minX, double maxX, double minZ, double maxZ, double y) {
         if (y != 0) {
-            Matrix4f matrix4f = stack.last().pose();
-            //TODO: check
-            buffer.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-            buffer.vertex(matrix4f, (float) minX, (float) y, (float) minZ).color(color[0], color[1], color[2], color[3]).endVertex();
-            buffer.vertex(matrix4f, (float) maxX, (float) y, (float) minZ).color(color[0], color[1], color[2], color[3]).endVertex();
-            buffer.vertex(matrix4f, (float) maxX, (float) y, (float) maxZ).color(color[0], color[1], color[2], color[3]).endVertex();
-            buffer.vertex(matrix4f, (float) minX, (float) y, (float) maxZ).color(color[0], color[1], color[2], color[3]).endVertex();
-            buffer.vertex(matrix4f, (float) minX, (float) y, (float) minZ).color(color[0], color[1], color[2], color[3]).endVertex();
-            tessellator.end();
+            Matrix4f matrix4f = stack.getLast().getMatrix();
+            buffer.begin(GL_LINE_LOOP, DefaultVertexFormats.POSITION);
+            buffer.pos(matrix4f, (float) minX, (float) y, (float) minZ).endVertex();
+            buffer.pos(matrix4f, (float) maxX, (float) y, (float) minZ).endVertex();
+            buffer.pos(matrix4f, (float) maxX, (float) y, (float) maxZ).endVertex();
+            buffer.pos(matrix4f, (float) minX, (float) y, (float) maxZ).endVertex();
+            tessellator.draw();
         }
     }
 }

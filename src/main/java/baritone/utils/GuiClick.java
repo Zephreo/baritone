@@ -22,23 +22,20 @@ import baritone.api.BaritoneAPI;
 import baritone.api.pathing.goals.GoalBlock;
 import baritone.api.utils.BetterBlockPos;
 import baritone.api.utils.Helper;
+import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Vector4f;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.BaseComponent;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.entity.Entity;
+import net.minecraft.util.math.*;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.vector.Vector4f;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.event.ClickEvent;
+
 import java.awt.*;
 import java.util.Collections;
 
@@ -53,7 +50,7 @@ public class GuiClick extends Screen implements Helper {
     private BlockPos currentMouseOver;
 
     public GuiClick() {
-        super(new TextComponent("CLICK"));
+        super(new StringTextComponent("CLICK"));
     }
 
     @Override
@@ -62,23 +59,23 @@ public class GuiClick extends Screen implements Helper {
     }
 
     @Override
-    public void render(PoseStack stack, int mouseX, int mouseY, float partialTicks) {
-        double mx = mc.mouseHandler.xpos();
-        double my = mc.mouseHandler.ypos();
+    public void render(MatrixStack stack, int mouseX, int mouseY, float partialTicks) {
+        double mx = mc.mouseHelper.getMouseX();
+        double my = mc.mouseHelper.getMouseY();
 
-        my = mc.getWindow().getScreenHeight() - my;
-        my *= mc.getWindow().getHeight() / (double) mc.getWindow().getScreenHeight();
-        mx *= mc.getWindow().getWidth() / (double) mc.getWindow().getScreenWidth();
-        Vec3 near = toWorld(mx, my, 0);
-        Vec3 far = toWorld(mx, my, 1); // "Use 0.945 that's what stack overflow says" - leijurv
+        my = mc.getMainWindow().getHeight() - my;
+        my *= mc.getMainWindow().getFramebufferHeight() / (double) mc.getMainWindow().getHeight();
+        mx *= mc.getMainWindow().getFramebufferWidth() / (double) mc.getMainWindow().getWidth();
+        Vector3d near = toWorld(mx, my, 0);
+        Vector3d far = toWorld(mx, my, 1); // "Use 0.945 that's what stack overflow says" - leijurv
 
         if (near != null && far != null) {
             ///
-            Vec3 viewerPos = new Vec3(PathRenderer.posX(), PathRenderer.posY(), PathRenderer.posZ());
-            LocalPlayer player = BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext().player();
-            HitResult result = player.level.clip(new ClipContext(near.add(viewerPos), far.add(viewerPos), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
-            if (result != null && result.getType() == HitResult.Type.BLOCK) {
-                currentMouseOver = ((BlockHitResult) result).getBlockPos();
+            Vector3d viewerPos = new Vector3d(PathRenderer.posX(), PathRenderer.posY(), PathRenderer.posZ());
+            ClientPlayerEntity player = BaritoneAPI.getProvider().getPrimaryBaritone().getPlayerContext().player();
+            RayTraceResult result = player.world.rayTraceBlocks(new RayTraceContext(near.add(viewerPos), far.add(viewerPos), RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, player));
+            if (result != null && result.getType() == RayTraceResult.Type.BLOCK) {
+                currentMouseOver = ((BlockRayTraceResult) result).getPos();
             }
         }
     }
@@ -90,10 +87,10 @@ public class GuiClick extends Screen implements Helper {
                 if (clickStart != null && !clickStart.equals(currentMouseOver)) {
                     BaritoneAPI.getProvider().getPrimaryBaritone().getSelectionManager().removeAllSelections();
                     BaritoneAPI.getProvider().getPrimaryBaritone().getSelectionManager().addSelection(BetterBlockPos.from(clickStart), BetterBlockPos.from(currentMouseOver));
-                    BaseComponent component = new TextComponent("Selection made! For usage: " + Baritone.settings().prefix.value + "help sel");
+                    TextComponent component = new StringTextComponent("Selection made! For usage: " + Baritone.settings().prefix.value + "help sel");
                     component.getStyle()
-                            .withColor(ChatFormatting.WHITE)
-                            .withClickEvent(new ClickEvent(
+                            .setFormatting(TextFormatting.WHITE)
+                            .setClickEvent(new ClickEvent(
                                     ClickEvent.Action.RUN_COMMAND,
                                     FORCE_COMMAND_PREFIX + "help sel"
                             ));
@@ -103,7 +100,7 @@ public class GuiClick extends Screen implements Helper {
                     BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(currentMouseOver));
                 }
             } else if (mouseButton == 1) {
-                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(currentMouseOver.above()));
+                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(currentMouseOver.up()));
             }
         }
         clickStart = null;
@@ -116,27 +113,26 @@ public class GuiClick extends Screen implements Helper {
         return super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
-    public void onRender(PoseStack modelViewStack, Matrix4f projectionMatrix) {
+    public void onRender(MatrixStack modelViewStack, Matrix4f projectionMatrix) {
         this.projectionViewMatrix = projectionMatrix.copy();
-        this.projectionViewMatrix.multiply(modelViewStack.last().pose());
+        this.projectionViewMatrix.mul(modelViewStack.getLast().getMatrix());
         this.projectionViewMatrix.invert();
 
         if (currentMouseOver != null) {
-            Entity e = mc.getCameraEntity();
+            Entity e = mc.getRenderViewEntity();
             // drawSingleSelectionBox WHEN?
             PathRenderer.drawManySelectionBoxes(modelViewStack, e, Collections.singletonList(currentMouseOver), Color.CYAN);
             if (clickStart != null && !clickStart.equals(currentMouseOver)) {
                 RenderSystem.enableBlend();
                 RenderSystem.blendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-                //TODO: check
-                IRenderer.glColor(Color.RED, 0.4F);
+                RenderSystem.color4f(Color.RED.getColorComponents(null)[0], Color.RED.getColorComponents(null)[1], Color.RED.getColorComponents(null)[2], 0.4F);
                 RenderSystem.lineWidth(Baritone.settings().pathRenderLineWidthPixels.value);
                 RenderSystem.disableTexture();
                 RenderSystem.depthMask(false);
                 RenderSystem.disableDepthTest();
                 BetterBlockPos a = new BetterBlockPos(currentMouseOver);
                 BetterBlockPos b = new BetterBlockPos(clickStart);
-                IRenderer.drawAABB(modelViewStack, new AABB(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z), Math.max(a.x, b.x) + 1, Math.max(a.y, b.y) + 1, Math.max(a.z, b.z) + 1));
+                IRenderer.drawAABB(modelViewStack, new AxisAlignedBB(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z), Math.max(a.x, b.x) + 1, Math.max(a.y, b.y) + 1, Math.max(a.z, b.z) + 1));
                 RenderSystem.enableDepthTest();
 
                 RenderSystem.depthMask(true);
@@ -146,23 +142,23 @@ public class GuiClick extends Screen implements Helper {
         }
     }
 
-    private Vec3 toWorld(double x, double y, double z) {
+    private Vector3d toWorld(double x, double y, double z) {
         if (this.projectionViewMatrix == null) {
             return null;
         }
 
-        x /= mc.getWindow().getWidth();
-        y /= mc.getWindow().getHeight();
+        x /= mc.getMainWindow().getFramebufferWidth();
+        y /= mc.getMainWindow().getFramebufferHeight();
         x = x * 2 - 1;
         y = y * 2 - 1;
 
         Vector4f pos = new Vector4f((float) x, (float) y, (float) z, 1.0F);
         pos.transform(this.projectionViewMatrix);
-        if (pos.w() == 0) {
+        if (pos.getW() == 0) {
             return null;
         }
 
         pos.perspectiveDivide();
-        return new Vec3(pos.x(), pos.y(), pos.z());
+        return new Vector3d(pos.getX(), pos.getY(), pos.getZ());
     }
 }

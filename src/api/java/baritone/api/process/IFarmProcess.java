@@ -17,7 +17,7 @@
 
 package baritone.api.process;
 
-import net.minecraft.core.BlockPos;
+import net.minecraft.util.math.BlockPos;
 
 public interface IFarmProcess extends IBaritoneProcess {
 

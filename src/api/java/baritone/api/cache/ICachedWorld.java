@@ -17,9 +17,10 @@
 
 package baritone.api.cache;
 
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.chunk.Chunk;
+
 import java.util.ArrayList;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.chunk.LevelChunk;
 
 /**
  * @author Brady
@@ -43,7 +44,7 @@ public interface ICachedWorld {
      *
      * @param chunk The chunk to pack and store
      */
-    void queueForPacking(LevelChunk chunk);
+    void queueForPacking(Chunk chunk);
 
     /**
      * Returns whether or not the block at the specified X and Z coordinates

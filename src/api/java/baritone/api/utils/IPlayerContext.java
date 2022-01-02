@@ -18,18 +18,19 @@
 package baritone.api.utils;
 
 import baritone.api.cache.IWorldData;
+import net.minecraft.block.SlabBlock;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.World;
+
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
 
 /**
  * @author Brady
@@ -37,14 +38,14 @@ import net.minecraft.world.phys.Vec3;
  */
 public interface IPlayerContext {
 
-    LocalPlayer player();
+    ClientPlayerEntity player();
 
     IPlayerController playerController();
 
-    Level world();
+    World world();
 
     default Iterable<Entity> entities() {
-        return ((ClientLevel) world()).entitiesForRendering();
+        return ((ClientWorld) world()).getAllEntities();
     }
 
     default Stream<Entity> entitiesStream() {
@@ -54,11 +55,11 @@ public interface IPlayerContext {
 
     IWorldData worldData();
 
-    HitResult objectMouseOver();
+    RayTraceResult objectMouseOver();
 
     default BetterBlockPos playerFeet() {
         // TODO find a better way to deal with soul sand!!!!!
-        BetterBlockPos feet = new BetterBlockPos(player().position().x, player().position().y + 0.1251, player().position().z);
+        BetterBlockPos feet = new BetterBlockPos(player().getPositionVec().x, player().getPositionVec().y + 0.1251, player().getPositionVec().z);
 
         // sometimes when calling this from another thread or while world is null, it'll throw a NullPointerException
         // that causes the game to immediately crash
@@ -70,23 +71,23 @@ public interface IPlayerContext {
         // if there is an exception, the only overhead is Java generating the exception object... so we can ignore it
         try {
             if (world().getBlockState(feet).getBlock() instanceof SlabBlock) {
-                return feet.above();
+                return feet.up();
             }
         } catch (NullPointerException ignored) {}
 
         return feet;
     }
 
-    default Vec3 playerFeetAsVec() {
-        return new Vec3(player().position().x, player().position().y, player().position().z);
+    default Vector3d playerFeetAsVec() {
+        return new Vector3d(player().getPositionVec().x, player().getPositionVec().y, player().getPositionVec().z);
     }
 
-    default Vec3 playerHead() {
-        return new Vec3(player().position().x, player().position().y + player().getEyeHeight(), player().position().z);
+    default Vector3d playerHead() {
+        return new Vector3d(player().getPositionVec().x, player().getPositionVec().y + player().getEyeHeight(), player().getPositionVec().z);
     }
 
     default Rotation playerRotations() {
-        return new Rotation(player().getYRot(), player().getXRot());
+        return new Rotation(player().rotationYaw, player().rotationPitch);
     }
 
     static double eyeHeight(boolean ifSneaking) {
@@ -99,9 +100,9 @@ public interface IPlayerContext {
      * @return The position of the highlighted block
      */
     default Optional<BlockPos> getSelectedBlock() {
-        HitResult result = objectMouseOver();
-        if (result != null && result.getType() == HitResult.Type.BLOCK) {
-            return Optional.of(((BlockHitResult) result).getBlockPos());
+        RayTraceResult result = objectMouseOver();
+        if (result != null && result.getType() == RayTraceResult.Type.BLOCK) {
+            return Optional.of(((BlockRayTraceResult) result).getPos());
         }
         return Optional.empty();
     }

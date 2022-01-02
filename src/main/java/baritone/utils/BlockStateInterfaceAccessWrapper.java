@@ -17,19 +17,20 @@
 
 package baritone.utils;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockReader;
+
 import javax.annotation.Nullable;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.FluidState;
 
 /**
  * @author Brady
  * @since 11/5/2019
  */
 @SuppressWarnings("NullableProblems")
-public final class BlockStateInterfaceAccessWrapper implements BlockGetter {
+public final class BlockStateInterfaceAccessWrapper implements IBlockReader {
 
     private final BlockStateInterface bsi;
 
@@ -39,7 +40,7 @@ public final class BlockStateInterfaceAccessWrapper implements BlockGetter {
 
     @Nullable
     @Override
-    public BlockEntity getBlockEntity(BlockPos pos) {
+    public TileEntity getTileEntity(BlockPos pos) {
         return null;
     }
 
@@ -53,15 +54,4 @@ public final class BlockStateInterfaceAccessWrapper implements BlockGetter {
     public FluidState getFluidState(BlockPos blockPos) {
         return getBlockState(blockPos).getFluidState();
     }
-
-    @Override
-    public int getHeight() {
-        return 255;
-    }
-
-    @Override
-    public int getMinBuildHeight() {
-        return 0;
-    }
-
 }

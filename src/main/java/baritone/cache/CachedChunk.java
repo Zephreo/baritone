@@ -21,15 +21,17 @@ import baritone.api.utils.BlockUtils;
 import baritone.utils.pathing.PathingBlockType;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.dimension.DimensionType;
 
 /**
  * @author Brady
@@ -109,19 +111,17 @@ public final class CachedChunk {
             Blocks.VINE
     );
 
-    public final int height;
-
     /**
      * The size of the chunk data in bits. Equal to 16 KiB.
      * <p>
-     * Chunks are 16x16xH, each block requires 2 bits.
+     * Chunks are 16x16x256, each block requires 2 bits.
      */
-    public final int size;
+    public static final int SIZE = 2 * 16 * 16 * 256;
 
     /**
-     * The size of the chunk data in bytes. Equal to 16 KiB for 256 height.
+     * The size of the chunk data in bytes. Equal to 16 KiB.
      */
-    public final int sizeInBytes;
+    public static final int SIZE_IN_BYTES = SIZE / 8;
 
     /**
      * The chunk x coordinate
@@ -153,14 +153,11 @@ public final class CachedChunk {
 
     public final long cacheTimestamp;
 
-    CachedChunk(int x, int z, int height, BitSet data, BlockState[] overview, Map<String, List<BlockPos>> specialBlockLocations, long cacheTimestamp) {
-        this.size = size(height);
-        this.sizeInBytes = sizeInBytes(size);
+    CachedChunk(int x, int z, BitSet data, BlockState[] overview, Map<String, List<BlockPos>> specialBlockLocations, long cacheTimestamp) {
         validateSize(data);
 
         this.x = x;
         this.z = z;
-        this.height = height;
         this.data = data;
         this.overview = overview;
         this.heightMap = new int[256];
@@ -175,14 +172,6 @@ public final class CachedChunk {
         calculateHeightMap();
     }
 
-    public static int size(int dimension_height) {
-        return 2 * 16 * 16 * dimension_height;
-    }
-
-    public static int sizeInBytes(int size) {
-        return size / 8;
-    }
-
     private final void setSpecial() {
         for (Map.Entry<String, List<BlockPos>> entry : specialBlockLocations.entrySet()) {
             for (BlockPos pos : entry.getValue()) {
@@ -191,7 +180,7 @@ public final class CachedChunk {
         }
     }
 
-    public final BlockState getBlock(int x, int y, int z, DimensionType dimension) {
+    public final BlockState getBlock(int x, int y, int z, RegistryKey<World> dimension) {
         int index = getPositionIndex(x, y, z);
         PathingBlockType type = getType(index);
         int internalPos = z << 4 | x;
@@ -208,20 +197,20 @@ public final class CachedChunk {
         if (special != null) {
             String str = special.get(index);
             if (str != null) {
-                return BlockUtils.stringToBlockRequired(str).defaultBlockState();
+                return BlockUtils.stringToBlockRequired(str).getDefaultState();
             }
         }
 
         if (type == PathingBlockType.SOLID) {
-            if (y == dimension.logicalHeight() - 1 && dimension.hasCeiling()) {
+            if (y == 127 && dimension == World.THE_NETHER) {
                 // nether roof is always unbreakable
-                return Blocks.BEDROCK.defaultBlockState();
+                return Blocks.BEDROCK.getDefaultState();
             }
-            if (y < 5 && dimension.natural()) {
+            if (y < 5 && dimension == World.OVERWORLD) {
                 // solid blocks below 5 are commonly bedrock
                 // however, returning bedrock always would be a little yikes
                 // discourage paths that include breaking blocks below 5 a little more heavily just so that it takes paths breaking what's known to be stone (at 5 or above) instead of what could maybe be bedrock (below 5)
-                return Blocks.OBSIDIAN.defaultBlockState();
+                return Blocks.OBSIDIAN.getDefaultState();
             }
         }
         return ChunkPacker.pathingTypeToBlock(type, dimension);
@@ -236,7 +225,7 @@ public final class CachedChunk {
             for (int x = 0; x < 16; x++) {
                 int index = z << 4 | x;
                 heightMap[index] = 0;
-                for (int y = height; y >= 0; y--) {
+                for (int y = 256; y >= 0; y--) {
                     int i = getPositionIndex(x, y, z);
                     if (data.get(i) || data.get(i + 1)) {
                         heightMap[index] = y;
@@ -287,14 +276,14 @@ public final class CachedChunk {
 
     /**
      * Validates the size of an input {@link BitSet} containing the raw
-     * packed chunk data. Sizes that exceed {@link CachedChunk#size} are
+     * packed chunk data. Sizes that exceed {@link CachedChunk#SIZE} are
      * considered invalid, and thus, an exception will be thrown.
      *
      * @param data The raw data
      * @throws IllegalArgumentException if the bitset size exceeds the maximum size
      */
-    private void validateSize(BitSet data) {
-        if (data.size() > size) {
+    private static void validateSize(BitSet data) {
+        if (data.size() > SIZE) {
             throw new IllegalArgumentException("BitSet of invalid length provided");
         }
     }

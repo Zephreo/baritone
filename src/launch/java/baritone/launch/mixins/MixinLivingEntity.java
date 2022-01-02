@@ -20,11 +20,11 @@ package baritone.launch.mixins;
 import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.event.events.RotationMoveEvent;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.Level;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -45,37 +45,38 @@ public abstract class MixinLivingEntity extends Entity {
      */
     private RotationMoveEvent jumpRotationEvent;
 
-    public MixinLivingEntity(EntityType<?> entityTypeIn, Level worldIn) {
+    public MixinLivingEntity(EntityType<?> entityTypeIn, World worldIn) {
         super(entityTypeIn, worldIn);
     }
 
     @Inject(
-            method = "jumpFromGround",
+            method = "jump",
             at = @At("HEAD")
     )
     private void preMoveRelative(CallbackInfo ci) {
         // noinspection ConstantConditions
-        if (LocalPlayer.class.isInstance(this)) {
-            IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((LocalPlayer) (Object) this);
+        if (ClientPlayerEntity.class.isInstance(this)) {
+            IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((ClientPlayerEntity) (Object) this);
             if (baritone != null) {
-                this.jumpRotationEvent = new RotationMoveEvent(RotationMoveEvent.Type.JUMP, this.getYRot());
+                this.jumpRotationEvent = new RotationMoveEvent(RotationMoveEvent.Type.JUMP, this.rotationYaw);
                 baritone.getGameEventHandler().onPlayerRotationMove(this.jumpRotationEvent);
             }
         }
     }
 
     @Redirect(
-            method = "jumpFromGround",
+            method = "jump",
             at = @At(
-                    value = "INVOKE",
-                    target = "net/minecraft/world/entity/LivingEntity.getYRot()F"
+                    value = "FIELD",
+                    opcode = GETFIELD,
+                    target = "net/minecraft/entity/LivingEntity.rotationYaw:F"
             )
     )
     private float overrideYaw(LivingEntity self) {
-        if (self instanceof LocalPlayer && BaritoneAPI.getProvider().getBaritoneForPlayer((LocalPlayer) (Object) this) != null) {
+        if (self instanceof ClientPlayerEntity && BaritoneAPI.getProvider().getBaritoneForPlayer((ClientPlayerEntity) (Object) this) != null) {
             return this.jumpRotationEvent.getYaw();
         }
-        return self.getYRot();
+        return self.rotationYaw;
     }
 
 

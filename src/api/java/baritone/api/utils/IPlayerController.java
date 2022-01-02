@@ -18,16 +18,17 @@
 package baritone.api.utils;
 
 import baritone.api.BaritoneAPI;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.container.ClickType;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.world.GameType;
+import net.minecraft.world.World;
 
 /**
  * @author Brady
@@ -43,13 +44,13 @@ public interface IPlayerController {
 
     void resetBlockRemoving();
 
-    void windowClick(int windowId, int slotId, int mouseButton, ClickType type, Player player);
+    ItemStack windowClick(int windowId, int slotId, int mouseButton, ClickType type, PlayerEntity player);
 
     GameType getGameType();
 
-    InteractionResult processRightClickBlock(LocalPlayer player, Level world, InteractionHand hand, BlockHitResult result);
+    ActionResultType processRightClickBlock(ClientPlayerEntity player, World world, Hand hand, BlockRayTraceResult result);
 
-    InteractionResult processRightClick(LocalPlayer player, Level world, InteractionHand hand);
+    ActionResultType processRightClick(ClientPlayerEntity player, World world, Hand hand);
 
     boolean clickBlock(BlockPos loc, Direction face);
 

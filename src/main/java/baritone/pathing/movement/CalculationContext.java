@@ -24,15 +24,15 @@ import baritone.cache.WorldData;
 import baritone.utils.BlockStateInterface;
 import baritone.utils.ToolSet;
 import baritone.utils.pathing.BetterWorldBorder;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 import static baritone.api.pathing.movement.ActionCosts.COST_INF;
 
@@ -46,7 +46,7 @@ public class CalculationContext {
 
     public final boolean safeForThreadedUse;
     public final IBaritone baritone;
-    public final Level world;
+    public final World world;
     public final WorldData worldData;
     public final BlockStateInterface bsi;
     public final ToolSet toolSet;
@@ -81,14 +81,14 @@ public class CalculationContext {
     public CalculationContext(IBaritone baritone, boolean forUseOnAnotherThread) {
         this.safeForThreadedUse = forUseOnAnotherThread;
         this.baritone = baritone;
-        LocalPlayer player = baritone.getPlayerContext().player();
+        ClientPlayerEntity player = baritone.getPlayerContext().player();
         this.world = baritone.getPlayerContext().world();
         this.worldData = (WorldData) baritone.getWorldProvider().getCurrentWorld();
         this.bsi = new BlockStateInterface(world, worldData, forUseOnAnotherThread);
         this.toolSet = new ToolSet(player);
         this.hasThrowaway = Baritone.settings().allowPlace.value && ((Baritone) baritone).getInventoryBehavior().hasGenericThrowaway();
-        this.hasWaterBucket = Baritone.settings().allowWaterBucketFall.value && Inventory.isHotbarSlot(player.getInventory().findSlotMatchingItem(STACK_BUCKET_WATER)) && world.dimension() != Level.NETHER;
-        this.canSprint = Baritone.settings().allowSprint.value && player.getFoodData().getFoodLevel() > 6;
+        this.hasWaterBucket = Baritone.settings().allowWaterBucketFall.value && PlayerInventory.isHotbar(player.inventory.getSlotFor(STACK_BUCKET_WATER)) && world.getDimensionKey() != World.THE_NETHER;
+        this.canSprint = Baritone.settings().allowSprint.value && player.getFoodStats().getFoodLevel() > 6;
         this.placeBlockCost = Baritone.settings().blockPlacementPenalty.value;
         this.allowBreak = Baritone.settings().allowBreak.value;
         this.allowParkour = Baritone.settings().allowParkour.value;
@@ -103,7 +103,7 @@ public class CalculationContext {
         this.allowDownward = Baritone.settings().allowDownward.value;
         this.maxFallHeightNoWater = Baritone.settings().maxFallHeightNoWater.value;
         this.maxFallHeightBucket = Baritone.settings().maxFallHeightBucket.value;
-        int depth = EnchantmentHelper.getDepthStrider(player);
+        int depth = EnchantmentHelper.getDepthStriderModifier(player);
         if (depth > 3) {
             depth = 3;
         }

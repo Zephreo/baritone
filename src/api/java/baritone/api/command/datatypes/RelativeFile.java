@@ -94,7 +94,7 @@ public enum RelativeFile implements IDatatypePost<File, File> {
     }
 
     public static File gameDir() {
-        File gameDir = HELPER.mc.gameDirectory.getAbsoluteFile();
+        File gameDir = HELPER.mc.gameDir.getAbsoluteFile();
         if (gameDir.getName().equals(".")) {
             return gameDir.getParentFile();
         }

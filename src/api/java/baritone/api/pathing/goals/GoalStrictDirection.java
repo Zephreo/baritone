@@ -18,8 +18,8 @@
 package baritone.api.pathing.goals;
 
 import baritone.api.utils.SettingsUtil;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.Direction;
+import net.minecraft.util.math.BlockPos;
 
 /**
  * Dig a tunnel in a certain direction, but if you have to deviate from the path, go back to where you started
@@ -36,8 +36,8 @@ public class GoalStrictDirection implements Goal {
         x = origin.getX();
         y = origin.getY();
         z = origin.getZ();
-        dx = direction.getStepX();
-        dz = direction.getStepZ();
+        dx = direction.getXOffset();
+        dz = direction.getZOffset();
         if (dx == 0 && dz == 0) {
             throw new IllegalArgumentException(direction + "");
         }

@@ -24,10 +24,11 @@ import baritone.api.command.exception.CommandException;
 import baritone.api.pathing.goals.Goal;
 import baritone.api.pathing.goals.GoalBlock;
 import baritone.api.utils.BetterBlockPos;
+import net.minecraft.block.AirBlock;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-import net.minecraft.world.level.block.AirBlock;
 
 public class SurfaceCommand extends Command {
 
@@ -43,7 +44,7 @@ public class SurfaceCommand extends Command {
 
         // Ensure this command will not run if you are above the surface level and the block above you is air
         // As this would imply that your are already on the open surface
-        if (playerPos.getY() > surfaceLevel && mc.level.getBlockState(playerPos.above()).getBlock() instanceof AirBlock) {
+        if (playerPos.getY() > surfaceLevel && mc.world.getBlockState(playerPos.up()).getBlock() instanceof AirBlock) {
             logDirect("Already at surface");
             return;
         }
@@ -53,8 +54,8 @@ public class SurfaceCommand extends Command {
         for (int currentIteratedY = startingYPos; currentIteratedY < worldHeight; currentIteratedY++) {
             final BetterBlockPos newPos = new BetterBlockPos(playerPos.getX(), currentIteratedY, playerPos.getZ());
 
-            if (!(mc.level.getBlockState(newPos).getBlock() instanceof AirBlock) && newPos.getY() > playerPos.getY()) {
-                Goal goal = new GoalBlock(newPos.above());
+            if (!(mc.world.getBlockState(newPos).getBlock() instanceof AirBlock) && newPos.getY() > playerPos.getY()) {
+                Goal goal = new GoalBlock(newPos.up());
                 logDirect(String.format("Going to: %s", goal.toString()));
                 baritone.getCustomGoalProcess().setGoalAndPath(goal);
                 return;

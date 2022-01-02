@@ -19,7 +19,7 @@ package baritone.api.pathing.goals;
 
 import baritone.api.utils.SettingsUtil;
 import baritone.api.utils.interfaces.IGoalRenderPos;
-import net.minecraft.core.BlockPos;
+import net.minecraft.util.math.BlockPos;
 
 public class GoalNear implements Goal, IGoalRenderPos {
 

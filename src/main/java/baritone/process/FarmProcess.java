@@ -32,26 +32,19 @@ import baritone.cache.WorldScanner;
 import baritone.pathing.movement.MovementHelper;
 import baritone.utils.BaritoneProcessHelper;
 import baritone.utils.NotificationHelper;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.AirBlock;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.BonemealableBlock;
-import net.minecraft.world.level.block.CactusBlock;
-import net.minecraft.world.level.block.CropBlock;
-import net.minecraft.world.level.block.NetherWartBlock;
-import net.minecraft.world.level.block.SugarCaneBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.block.*;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.util.Direction;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.World;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -116,27 +109,27 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
     }
 
     private enum Harvest {
-        WHEAT((CropBlock) Blocks.WHEAT),
-        CARROTS((CropBlock) Blocks.CARROTS),
-        POTATOES((CropBlock) Blocks.POTATOES),
-        BEETROOT((CropBlock) Blocks.BEETROOTS),
+        WHEAT((CropsBlock) Blocks.WHEAT),
+        CARROTS((CropsBlock) Blocks.CARROTS),
+        POTATOES((CropsBlock) Blocks.POTATOES),
+        BEETROOT((CropsBlock) Blocks.BEETROOTS),
         PUMPKIN(Blocks.PUMPKIN, state -> true),
         MELON(Blocks.MELON, state -> true),
-        NETHERWART(Blocks.NETHER_WART, state -> state.getValue(NetherWartBlock.AGE) >= 3),
+        NETHERWART(Blocks.NETHER_WART, state -> state.get(NetherWartBlock.AGE) >= 3),
         SUGARCANE(Blocks.SUGAR_CANE, null) {
             @Override
-            public boolean readyToHarvest(Level world, BlockPos pos, BlockState state) {
+            public boolean readyToHarvest(World world, BlockPos pos, BlockState state) {
                 if (Baritone.settings().replantCrops.value) {
-                    return world.getBlockState(pos.below()).getBlock() instanceof SugarCaneBlock;
+                    return world.getBlockState(pos.down()).getBlock() instanceof SugarCaneBlock;
                 }
                 return true;
             }
         },
         CACTUS(Blocks.CACTUS, null) {
             @Override
-            public boolean readyToHarvest(Level world, BlockPos pos, BlockState state) {
+            public boolean readyToHarvest(World world, BlockPos pos, BlockState state) {
                 if (Baritone.settings().replantCrops.value) {
-                    return world.getBlockState(pos.below()).getBlock() instanceof CactusBlock;
+                    return world.getBlockState(pos.down()).getBlock() instanceof CactusBlock;
                 }
                 return true;
             }
@@ -144,7 +137,7 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
         public final Block block;
         public final Predicate<BlockState> readyToHarvest;
 
-        Harvest(CropBlock blockCrops) {
+        Harvest(CropsBlock blockCrops) {
             this(blockCrops, blockCrops::isMaxAge);
             // max age is 7 for wheat, carrots, and potatoes, but 3 for beetroot
         }
@@ -154,12 +147,12 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
             this.readyToHarvest = readyToHarvest;
         }
 
-        public boolean readyToHarvest(Level world, BlockPos pos, BlockState state) {
+        public boolean readyToHarvest(World world, BlockPos pos, BlockState state) {
             return readyToHarvest.test(state);
         }
     }
 
-    private boolean readyForHarvest(Level world, BlockPos pos, BlockState state) {
+    private boolean readyForHarvest(World world, BlockPos pos, BlockState state) {
         for (Harvest harvest : Harvest.values()) {
             if (harvest.block == state.getBlock()) {
                 return harvest.readyToHarvest(world, pos, state);
@@ -205,12 +198,12 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
         List<BlockPos> openSoulsand = new ArrayList<>();
         for (BlockPos pos : locations) {
             //check if the target block is out of range.
-            if (range != 0 && pos.distSqr(center) > range * range) {
+            if (range != 0 && pos.distanceSq(center) > range * range) {
                 continue;
             }
 
             BlockState state = ctx.world().getBlockState(pos);
-            boolean airAbove = ctx.world().getBlockState(pos.above()).getBlock() instanceof AirBlock;
+            boolean airAbove = ctx.world().getBlockState(pos.up()).getBlock() instanceof AirBlock;
             if (state.getBlock() == Blocks.FARMLAND) {
                 if (airAbove) {
                     openFarmland.add(pos);
@@ -227,9 +220,9 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
                 toBreak.add(pos);
                 continue;
             }
-            if (state.getBlock() instanceof BonemealableBlock) {
-                BonemealableBlock ig = (BonemealableBlock) state.getBlock();
-                if (ig.isValidBonemealTarget(ctx.world(), pos, state, true) && ig.isBonemealSuccess(ctx.world(), ctx.world().random, pos, state)) {
+            if (state.getBlock() instanceof IGrowable) {
+                IGrowable ig = (IGrowable) state.getBlock();
+                if (ig.canGrow(ctx.world(), pos, state, true) && ig.canUseBonemeal(ctx.world(), ctx.world().rand, pos, state)) {
                     bonemealable.add(pos);
                 }
             }
@@ -251,10 +244,10 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
         both.addAll(openSoulsand);
         for (BlockPos pos : both) {
             boolean soulsand = openSoulsand.contains(pos);
-            Optional<Rotation> rot = RotationUtils.reachableOffset(ctx.player(), pos, new Vec3(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5), ctx.playerController().getBlockReachDistance(), false);
+            Optional<Rotation> rot = RotationUtils.reachableOffset(ctx.player(), pos, new Vector3d(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5), ctx.playerController().getBlockReachDistance(), false);
             if (rot.isPresent() && isSafeToCancel && baritone.getInventoryBehavior().throwaway(true, soulsand ? this::isNetherWart : this::isPlantable)) {
-                HitResult result = RayTraceUtils.rayTraceTowards(ctx.player(), rot.get(), ctx.playerController().getBlockReachDistance());
-                if (result instanceof BlockHitResult && ((BlockHitResult) result).getDirection() == Direction.UP) {
+                RayTraceResult result = RayTraceUtils.rayTraceTowards(ctx.player(), rot.get(), ctx.playerController().getBlockReachDistance());
+                if (result instanceof BlockRayTraceResult && ((BlockRayTraceResult) result).getFace() == Direction.UP) {
                     baritone.getLookBehavior().updateTarget(rot.get(), true);
                     if (ctx.isLookingAt(pos)) {
                         baritone.getInputOverrideHandler().setInputForceState(Input.CLICK_RIGHT, true);
@@ -289,12 +282,12 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
         }
         if (baritone.getInventoryBehavior().throwaway(false, this::isPlantable)) {
             for (BlockPos pos : openFarmland) {
-                goalz.add(new GoalBlock(pos.above()));
+                goalz.add(new GoalBlock(pos.up()));
             }
         }
         if (baritone.getInventoryBehavior().throwaway(false, this::isNetherWart)) {
             for (BlockPos pos : openSoulsand) {
-                goalz.add(new GoalBlock(pos.above()));
+                goalz.add(new GoalBlock(pos.up()));
             }
         }
         if (baritone.getInventoryBehavior().throwaway(false, this::isBoneMeal)) {
@@ -307,7 +300,7 @@ public final class FarmProcess extends BaritoneProcessHelper implements IFarmPro
                 ItemEntity ei = (ItemEntity) entity;
                 if (PICKUP_DROPPED.contains(ei.getItem().getItem())) {
                     // +0.1 because of farmland's 0.9375 dummy height lol
-                    goalz.add(new GoalBlock(new BlockPos(entity.position().x, entity.position().y + 0.1, entity.position().z)));
+                    goalz.add(new GoalBlock(new BlockPos(entity.getPositionVec().x, entity.getPositionVec().y + 0.1, entity.getPositionVec().z)));
                 }
             }
         }

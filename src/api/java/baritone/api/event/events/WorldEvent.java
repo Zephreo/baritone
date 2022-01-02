@@ -18,7 +18,7 @@
 package baritone.api.event.events;
 
 import baritone.api.event.events.type.EventState;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.world.ClientWorld;
 
 /**
  * @author Brady
@@ -29,14 +29,14 @@ public final class WorldEvent {
     /**
      * The new world that is being loaded. {@code null} if being unloaded.
      */
-    private final ClientLevel world;
+    private final ClientWorld world;
 
     /**
      * The state of the event
      */
     private final EventState state;
 
-    public WorldEvent(ClientLevel world, EventState state) {
+    public WorldEvent(ClientWorld world, EventState state) {
         this.world = world;
         this.state = state;
     }
@@ -44,7 +44,7 @@ public final class WorldEvent {
     /**
      * @return The new world that is being loaded. {@code null} if being unloaded.
      */
-    public final ClientLevel getWorld() {
+    public final ClientWorld getWorld() {
         return this.world;
     }
 

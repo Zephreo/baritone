@@ -18,8 +18,9 @@
 package baritone.api.pathing.goals;
 
 import baritone.api.utils.SettingsUtil;
+import net.minecraft.util.math.BlockPos;
+
 import java.util.Arrays;
-import net.minecraft.core.BlockPos;
 
 /**
  * Useful for automated combat (retreating specifically)

@@ -24,14 +24,15 @@ import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.exception.CommandException;
 import baritone.api.command.exception.CommandInvalidStateException;
 import baritone.api.utils.BetterBlockPos;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.IFormattableTextComponent;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.item.ItemStack;
 
 public class ChestsCommand extends Command {
 
@@ -53,8 +54,8 @@ public class ChestsCommand extends Command {
             IRememberedInventory inv = entry.getValue();
             logDirect(pos.toString());
             for (ItemStack item : inv.getContents()) {
-                MutableComponent component = (MutableComponent) item.getDisplayName();
-                component.append(String.format(" x %d", item.getCount()));
+                IFormattableTextComponent component = (IFormattableTextComponent) item.getTextComponent();
+                component.appendString(String.format(" x %d", item.getCount()));
                 logDirect(component);
             }
         }

@@ -18,7 +18,7 @@
 package baritone.api.pathing.movement;
 
 import baritone.api.utils.BetterBlockPos;
-import net.minecraft.core.BlockPos;
+import net.minecraft.util.math.BlockPos;
 
 /**
  * @author Brady

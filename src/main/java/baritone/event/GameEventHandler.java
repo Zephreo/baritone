@@ -25,10 +25,11 @@ import baritone.api.event.listener.IGameEventListener;
 import baritone.api.utils.Helper;
 import baritone.cache.WorldProvider;
 import baritone.utils.BlockStateInterface;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.LevelChunk;
 
 /**
  * @author Brady
@@ -82,18 +83,18 @@ public final class GameEventHandler implements IEventBus, Helper {
         boolean isPostPopulate = state == EventState.POST
                 && (type == ChunkEvent.Type.POPULATE_FULL || type == ChunkEvent.Type.POPULATE_PARTIAL);
 
-        Level world = baritone.getPlayerContext().world();
+        World world = baritone.getPlayerContext().world();
 
         // Whenever the server sends us to another dimension, chunks are unloaded
         // technically after the new world has been loaded, so we perform a check
         // to make sure the chunk being unloaded is already loaded.
         boolean isPreUnload = state == EventState.PRE
                 && type == ChunkEvent.Type.UNLOAD
-                && world.getChunkSource().getChunk(event.getX(), event.getZ(), null, false) != null;
+                && world.getChunkProvider().getChunk(event.getX(), event.getZ(), null, false) != null;
 
         if (isPostPopulate || isPreUnload) {
             baritone.getWorldProvider().ifWorldLoaded(worldData -> {
-                LevelChunk chunk = world.getChunk(event.getX(), event.getZ());
+                Chunk chunk = world.getChunk(event.getX(), event.getZ());
                 worldData.getCachedWorld().queueForPacking(chunk);
             });
         }
@@ -114,7 +115,7 @@ public final class GameEventHandler implements IEventBus, Helper {
         if (event.getState() == EventState.POST) {
             cache.closeWorld();
             if (event.getWorld() != null) {
-                cache.initWorld(event.getWorld().dimension(), event.getWorld().dimensionType());
+                cache.initWorld(event.getWorld().getDimensionKey());
             }
         }
 
