@@ -15,30 +15,21 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package baritone.api.cache;
+package baritone.launch.mixins;
 
-import net.minecraft.util.math.BlockPos;
-
-import java.util.Map;
+import baritone.utils.accessor.INBTTagLongArray;
+import net.minecraft.nbt.NBTTagLongArray;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
- * @author Brady
- * @since 9/23/2018
+ * @author rycbar
+ * @since 26.09.2022
  */
-public interface IContainerMemory {
+@Mixin(NBTTagLongArray.class)
+public abstract class MixinNBTTagLongArray implements INBTTagLongArray {
 
-    /**
-     * Gets a remembered inventory by its block position.
-     *
-     * @param pos The position of the container block
-     * @return The remembered inventory
-     */
-    IRememberedInventory getInventoryByPos(BlockPos pos);
-
-    /**
-     * Gets the map of all block positions to their remembered inventories.
-     *
-     * @return Map of block positions to their respective remembered inventories
-     */
-    Map<BlockPos, IRememberedInventory> getRememberedInventories();
+    @Accessor("data")
+    @Override
+    public abstract long[] getLongArray();
 }

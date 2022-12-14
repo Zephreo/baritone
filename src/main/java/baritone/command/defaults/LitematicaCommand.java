@@ -18,46 +18,33 @@
 package baritone.command.defaults;
 
 import baritone.api.IBaritone;
-import baritone.api.cache.IRememberedInventory;
 import baritone.api.command.Command;
 import baritone.api.command.argument.IArgConsumer;
 import baritone.api.command.exception.CommandException;
-import baritone.api.command.exception.CommandInvalidStateException;
-import baritone.api.utils.BetterBlockPos;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 
-public class ChestsCommand extends Command {
+public class LitematicaCommand extends Command {
 
-    public ChestsCommand(IBaritone baritone) {
-        super(baritone, "chests");
+    public LitematicaCommand(IBaritone baritone) {
+        super(baritone, "litematica");
     }
 
     @Override
     public void execute(String label, IArgConsumer args) throws CommandException {
-        args.requireMax(0);
-        Set<Map.Entry<BlockPos, IRememberedInventory>> entries =
-                ctx.worldData().getContainerMemory().getRememberedInventories().entrySet();
-        if (entries.isEmpty()) {
-            throw new CommandInvalidStateException("No remembered inventories");
-        }
-        for (Map.Entry<BlockPos, IRememberedInventory> entry : entries) {
-            // betterblockpos has censoring
-            BetterBlockPos pos = new BetterBlockPos(entry.getKey());
-            IRememberedInventory inv = entry.getValue();
-            logDirect(pos.toString());
-            for (ItemStack item : inv.getContents()) {
-                ITextComponent component = item.getTextComponent();
-                component.appendText(String.format(" x %d", item.getCount()));
-                logDirect(component);
+        int schematic = 0;
+        if (args.hasAny()) {
+            args.requireMax(1);
+            if (args.is(Integer.class)) {
+                schematic = args.getAs(Integer.class) - 1;
             }
+        }
+        try {
+            baritone.getBuilderProcess().buildOpenLitematic(schematic);
+        } catch (IndexOutOfBoundsException e) {
+            logDirect("Pleas provide a valid index.");
         }
     }
 
@@ -68,16 +55,17 @@ public class ChestsCommand extends Command {
 
     @Override
     public String getShortDesc() {
-        return "Display remembered inventories";
+        return "Builds the loaded schematic";
     }
 
     @Override
     public List<String> getLongDesc() {
         return Arrays.asList(
-                "The chests command lists remembered inventories, I guess?",
+                "Build a schematic currently open in Litematica.",
                 "",
                 "Usage:",
-                "> chests"
+                "> litematica",
+                "> litematica <#>"
         );
     }
 }

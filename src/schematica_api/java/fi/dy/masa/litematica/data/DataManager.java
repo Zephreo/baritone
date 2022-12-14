@@ -15,25 +15,19 @@
  * along with Baritone.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package baritone.api.cache;
+package fi.dy.masa.litematica.data;
 
-import net.minecraft.item.ItemStack;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacementManager;
 
-import java.util.List;
+public class DataManager {
+    public static final DataManager INSTANCE = new DataManager();
+    private final SchematicPlacementManager schematicPlacementManager = new SchematicPlacementManager();
 
-/**
- * @author Brady
- * @since 9/23/2018
- */
-public interface IRememberedInventory {
+    private static DataManager getInstance() {
+        return INSTANCE;
+    }
 
-    /**
-     * @return The contents of this inventory
-     */
-    List<ItemStack> getContents();
-
-    /**
-     * @return The number of slots in this inventory
-     */
-    int getSize();
+    public static SchematicPlacementManager getSchematicPlacementManager() {
+        return getInstance().schematicPlacementManager;
+    }
 }

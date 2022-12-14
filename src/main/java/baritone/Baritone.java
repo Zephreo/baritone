@@ -68,8 +68,8 @@ public class Baritone implements IBaritone {
 
     private PathingBehavior pathingBehavior;
     private LookBehavior lookBehavior;
-    private MemoryBehavior memoryBehavior;
     private InventoryBehavior inventoryBehavior;
+    private WaypointBehavior waypointBehavior;
     private InputOverrideHandler inputOverrideHandler;
 
     private FollowProcess followProcess;
@@ -100,9 +100,9 @@ public class Baritone implements IBaritone {
             // the Behavior constructor calls baritone.registerBehavior(this) so this populates the behaviors arraylist
             pathingBehavior = new PathingBehavior(this);
             lookBehavior = new LookBehavior(this);
-            memoryBehavior = new MemoryBehavior(this);
             inventoryBehavior = new InventoryBehavior(this);
             inputOverrideHandler = new InputOverrideHandler(this);
+            waypointBehavior = new WaypointBehavior(this);
         }
 
         this.pathingControlManager = new PathingControlManager(this);
@@ -149,10 +149,6 @@ public class Baritone implements IBaritone {
     @Override
     public IPlayerContext getPlayerContext() {
         return this.playerContext;
-    }
-
-    public MemoryBehavior getMemoryBehavior() {
-        return this.memoryBehavior;
     }
 
     @Override
