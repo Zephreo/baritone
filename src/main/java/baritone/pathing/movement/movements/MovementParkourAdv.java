@@ -274,16 +274,10 @@ public class MovementParkourAdv extends Movement {
     
     private static EnumFacing getDestDirection(EnumFacing jumpDirection, int jumpX, int jumpZ) {
         double jumpAngle = getSignedAngle(jumpDirection.getXOffset(), jumpDirection.getZOffset(), jumpX, jumpZ);
-        if (jumpAngle < -5) {
-            return jumpDirection.rotateYCCW();
-        } else if (jumpAngle > 5) {
-            return jumpDirection.rotateY();
-        } else {
-            return jumpDirection;
-        }
+        return getDestDirection(jumpDirection, jumpAngle);
     }
     
-    private static EnumFacing getDestDirection(EnumFacing jumpDirection, float jumpAngle) {
+    private static EnumFacing getDestDirection(EnumFacing jumpDirection, double jumpAngle) {
         if (jumpAngle < -5) {
             return jumpDirection.rotateYCCW();
         } else if (jumpAngle > 5) {
@@ -339,8 +333,7 @@ public class MovementParkourAdv extends Movement {
      * @return The rotated vector
      */
     private static Vec3i rotateAroundY(Vec3i input, int rotations) {
-        int x;
-        int z;
+        int x; int z;
         switch (rotations % 4) {
             case 0:
                 return input;
@@ -372,23 +365,6 @@ public class MovementParkourAdv extends Movement {
         double x = vector.x / length;
         double y = vector.y / length;
         double z = vector.z / length;
-        accPerBlock = 1 / accPerBlock;
-        for (double i = 0; i < length; i += accPerBlock) {
-            line.add(new Vec3d(x * i + 0.5, y * i + 0.5, z * i + 0.5));
-        }
-        return line;
-    }
-
-    private static Set<Vec3i> getLineApprox(Vec3i vec, double overlap, double accPerBlock) {
-        return approxBlocks(getLine(vec, accPerBlock), overlap);
-    }
-
-    public static List<Vec3d> getLine(Vec3i vector, double accPerBlock) {
-        ArrayList<Vec3d> line = new ArrayList<>();
-        double length = getDistance(vector);
-        double x = vector.getX() / length;
-        double y = vector.getY() / length;
-        double z = vector.getZ() / length;
         accPerBlock = 1 / accPerBlock;
         for (double i = 0; i < length; i += accPerBlock) {
             line.add(new Vec3d(x * i + 0.5, y * i + 0.5, z * i + 0.5));
@@ -785,11 +761,10 @@ public class MovementParkourAdv extends Movement {
         
         double cost = costFromJump(context, srcX, srcY, srcZ, jump.getX(), destY - srcY, jump.getZ(), extraAscend, jumpDirection, type) + costModifiers;
         if (cost < COST_INF) {
-            if (firstResult) {
-                firstResult = false;
-            } else {
+            if (!firstResult) {
                 res = res.nextPotentialDestination();
             }
+            firstResult = false;
             res.x = destX;
             res.y = destY;
             res.z = destZ;
@@ -863,23 +838,21 @@ public class MovementParkourAdv extends Movement {
                 }
             }
         }
+        double jumpDirAngle = -1;
         if (MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY, srcZ + jumpZ - jumpDirection.getZOffset()) && // Checking the blocks immediately preceding the destination (second possible direction)
                 MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY + 1, srcZ + jumpZ - jumpDirection.getZOffset())) {
             if (!MovementHelper.isBottomSlab(landingOn) || MovementHelper.fullyPassable(context, srcX + jumpX - jumpDirection.getXOffset(), srcY + jumpY - 1, srcZ + jumpZ - jumpDirection.getZOffset())) {
-                double jumpDirAngle = Math.abs(getSignedAngle(jumpDirection.getXOffset(), jumpDirection.getZOffset(), jumpX - jumpDirection.getXOffset(), jumpZ - jumpDirection.getZOffset()));
-                if (destDirAngle >= 0 && destDirAngle < jumpDirAngle) { // Both directions are possible but destDir is slightly better
-                    entryPointsArray[0] = destDirection;
-                    entryPointsArray[1] = jumpDirection;
-                    return entryPointsArray;
-                }
-                entryPointsArray[0] = jumpDirection; // jumpDir is slightly better
-                entryPointsArray[1] = destDirAngle >= 0 ? destDirection : null; 
-                return entryPointsArray;
+                jumpDirAngle = Math.abs(getSignedAngle(jumpDirection.getXOffset(), jumpDirection.getZOffset(), jumpX - jumpDirection.getXOffset(), jumpZ - jumpDirection.getZOffset()));
             }
         }
-        if (destDirAngle != -1) { // Only destDir is possible
+        if (destDirAngle != -1 && destDirAngle < jumpDirAngle) { // destDir is slightly better
             entryPointsArray[0] = destDirection;
-            entryPointsArray[1] = null;
+            entryPointsArray[1] = jumpDirAngle != -1 ? jumpDirection : null; 
+            return entryPointsArray;
+        }
+        if (jumpDirAngle != -1) { // jumpDir is slightly better
+            entryPointsArray[0] = jumpDirection; 
+            entryPointsArray[1] = destDirAngle != -1 ? destDirection : null; 
             return entryPointsArray;
         }
         entryPointsArray[0] = null; // The destination is blocked in both directions
